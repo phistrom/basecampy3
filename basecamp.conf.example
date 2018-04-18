@@ -1,0 +1,10 @@
+[BASECAMP]
+client_id=the_client_id_when_you_made_the_app
+client_secret=the_secret_given_when_you_made_the_app
+redirect_uri=https://www.what_you_put_in_when_you_made_the_app.com/oh-ok-then.html
+### used to get access_token and refresh_token only ###
+### DELETE your user_email and user_pass entries and CHANGE YOUR PASSWORD when you have obtained these tokens! ###
+user_email=username@mycompany.com
+user_pass=MyPassword
+access_token=
+refresh_token=
