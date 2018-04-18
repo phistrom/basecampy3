@@ -1,8 +1,14 @@
 from setuptools import setup
 
+VERSION = "0.1.5"
+
+
+with open('README.md', 'r') as infile:
+    long_description = infile.read()
+
 setup(
     name='basecampy3',
-    version='0.1.0',
+    version=VERSION,
     packages=[
         'basecampy3',
         'basecampy3.endpoints'
@@ -17,13 +23,12 @@ setup(
         "six==1.11.0",
         "urllib3==1.22",
     ],
-    scripts=['scripts/bc3.py'],
     entry_points={
         'console_scripts': [
-            'bc3 = bc3:main',
+            'bc3 = basecampy3.bc3_cli:main',
         ],
     },
-    url='',
+    url='https://github.com/phistrom/basecampy3',
     license='MIT',
     author='Phillip Stromberg',
     author_email='phillip@4stromberg.com',
@@ -37,5 +42,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-    )
+    ),
+    long_description=long_description,
+    long_description_content_type="text/markdown"
 )

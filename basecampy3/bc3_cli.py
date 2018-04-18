@@ -34,7 +34,11 @@ class CLI(object):
         loglevel = logging.DEBUG if args.debug else logging.INFO
         logging.getLogger().setLevel(loglevel)
         logging.basicConfig()
-        args.func()
+        try:
+            args.func()
+        except AttributeError:
+            parser.print_usage()
+            return
 
         return new
 
@@ -114,5 +118,9 @@ class CLI(object):
     #     return {m[0]: m[1] for m in endpoint_modules if m[0] not in ("_base", "util")}
 
 
+def main():
+    return CLI.from_command_line()
+
+
 if __name__ == "__main__":
-    cli = CLI.from_command_line()
+    cli = main()
