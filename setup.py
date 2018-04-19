@@ -1,14 +1,18 @@
+import os
 from setuptools import setup
 
-VERSION = "0.1.5"
+here = os.path.abspath(os.path.dirname(__file__))
 
-
-with open('README.md', 'r') as infile:
+with open(os.path.join(here, 'README.md'), 'r') as infile:
     long_description = infile.read()
+
+about = {}
+with open(os.path.join(here, 'basecampy3', '__version__.py'), 'r', encoding='utf-8') as infile:
+    exec(infile.read(), about)
 
 setup(
     name='basecampy3',
-    version=VERSION,
+    version=about['__version__'],
     packages=[
         'basecampy3',
         'basecampy3.endpoints'
@@ -43,6 +47,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
     ),
+    zip_safe=False,
     long_description=long_description,
     long_description_content_type="text/markdown"
 )

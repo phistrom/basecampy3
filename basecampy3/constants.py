@@ -1,3 +1,5 @@
+from .__version__ import __version__
+
 API_URL = "https://3.basecampapi.com/"
 
 DOCK_NAME_CAMPFIRE = 'chat'
@@ -10,3 +12,5 @@ DOCK_NAME_FORWARDS = 'inbox'
 
 RATE_LIMIT_REQUESTS = 50
 RATE_LIMIT_PER_SECONDS = 10
+
+VERSION = __version__
