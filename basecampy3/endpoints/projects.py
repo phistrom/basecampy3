@@ -1,8 +1,10 @@
 from . import _base, people, util
 from .. import constants
-import requests
 from ..exc import *
+
+import requests
 import six
+
 import time
 
 
@@ -188,6 +190,108 @@ class Projects(_base.BasecampEndpoint):
         url = self.CREATE_URL.format(base_url=self.url)
         new_project = self._create(url, data=data)
         return new_project
+
+    def find(self, any=None, name=None, description=None, status=None):
+        """
+        Finds Projects by name and/or description. The Basecamp 3 API does not have a search function for Projects so
+        this function has to iterate through all projects to search. Bare that in mind when considering the performance
+        of this function. Subsequent calls should be faster as they should be cached.
+
+        If `any` is a string, match any project where the name or description or both contain the
+        string (case-insensitive).
+
+        If `name`, and/or `description` is a string, a Project is a match if its name contains `name` or
+        description contains `description` (case-insensitive).
+
+        `name` and `description` will be ignored if `any` is specified.
+
+        `any`, `name`, or `description` can also be compiled regular expression objects (using re.compile). The search()
+        function will be called on the object. Case-sensitivity will depend on your compiled regular expression having
+        the re.IGNORECASE flag.
+
+        :param any: a string or regular expression to match against Project names AND descriptions. If any part of a
+                    Project name or description matches the string, it will be considered a match.
+        :type any: str|typing.Pattern
+        :param name: a string or regular expression to search project names for
+        :type name: str|typing.Pattern
+        :param description: a string or regular expression to search project descriptions for
+        :type description: str|typing.Pattern
+        :param status: can be "archived" or "trashed" to search Projects with that status. By default, only active
+                       Projects are searched.
+        :type status: str
+        :return: a list of Project objects that matched your search terms, sorted by most recently created first (which
+                is the behavior of the list projects API call)
+        :rtype: list[Project]
+        """
+        if not (any or name or description):
+            raise ValueError("Must specify at least one search term.")
+        if any:
+            try:
+                _ = any.search  # assignment makes PyCharm not complain
+                name_regex = any
+                name_str = None
+                desc_regex = any
+                desc_str = None
+            except AttributeError:
+                any_upper = any.upper()
+                name_regex = None
+                name_str = any_upper
+                desc_regex = None
+                desc_str = any_upper
+        else:
+            try:
+                _ = name.search
+                name_regex = name
+                name_str = None
+            except AttributeError:
+                name_regex = None
+                name_str = name.upper() if name else None
+            try:
+                _ = description.search
+                desc_regex = description
+                desc_str = None
+            except AttributeError:  # hopefully they gave us a string then
+                desc_str = description.upper() if description else None
+                desc_regex = None
+
+        project_generator = self.list(status=status)
+        matches = []
+        for project in project_generator:
+            if self._is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any):
+                matches.append(project)
+        return matches
+
+    @staticmethod
+    def _is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any):
+        """
+        Given a Project, find out if it is a match for our regular expressions or strings.
+
+        :param project: the Project to check
+        :type project: Project
+        :param name_str: the uppercased name of the Project to match as a string (case-insensitive) or None
+        :type name_str: str
+        :param name_regex: a re.compile object to call .search() to see if it matches the Project name or None
+        :type name_regex: typing.Pattern
+        :param desc_str: an uppercased string that is part of or the entire description (case-insensitive) or None
+        :type desc_str: str
+        :param desc_regex: a re.compile object to call .search() to see if it matches the Project description or None
+        :type desc_regex: typing.Pattern
+        :param any: if truthy, returns a True if name OR description match. Else returns true only if name AND
+                    description matched
+        :return: True if all non-None parameters matched the Project's name and/or description
+        :rtype: bool
+        """
+        project_description = project.description.upper() if project.description else ""
+        name_str_match = name_str is None or name_str in project.name.upper()
+        name_regex_match = name_regex is None or name_regex.search(project.name)
+        desc_str_match = desc_str is None or desc_str in project_description
+        desc_regex_match = desc_regex is None or desc_regex.search(project.description)
+        name_matched = name_str_match and name_regex_match
+        desc_matched = desc_str_match and desc_regex_match
+        if any:
+            return name_matched or desc_matched
+        else:
+            return name_matched and desc_matched
 
     def get(self, project):
         """
