@@ -1,12 +1,14 @@
+import logging
 from threading import Timer
+
 try:
-    from threading import _Semaphore as Semaphore
+    from threading import _BoundedSemaphore as BoundedSemaphore
 except ImportError:
-    from threading import Semaphore
+    from threading import BoundedSemaphore
 import time
 
 
-class RatedSemaphore(Semaphore):
+class RatedSemaphore(BoundedSemaphore):
     """
     Limit to 1 request per `period / value` seconds (over long run). Used to put a limit on time-restricted resources.
 
@@ -46,6 +48,11 @@ class RatedSemaphore(Semaphore):
         while True:
             try:
                 super(RatedSemaphore, self).release()
+                try:
+                    logging.debug("Rate Limiting: "
+                                  "Requests remaining: %s; Replenishing every %s seconds.", self._value, time_delta)
+                except AttributeError:
+                    pass
             except ValueError:  # ignore if already max possible value
                 pass
             time.sleep(time_delta)  # ignore EINTR

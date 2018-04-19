@@ -37,6 +37,7 @@ class Basecamp3TransportAdapter(adapters.HTTPAdapter):
             response = super(Basecamp3TransportAdapter, self).send(request, *args, **kwargs)
         if response.status_code == 304:  # not modified; cache hit
             cached_response = self._cache.get_cached_response(method, url)
+            logging.debug("Returning a cached response for %s, %s", method, url)
             return cached_response
         else:
             self._cache_this_response(response)
