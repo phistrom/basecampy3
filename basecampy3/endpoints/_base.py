@@ -1,5 +1,9 @@
+import json
+
 from ..exc import *
 from .. import constants
+import pprint
+import collections
 
 import re
 try:
@@ -37,6 +41,40 @@ class BasecampObject(object):
         new_item = self._endpoint._get(url)  # luckily this object has the URL we can refresh from
         self._values.clear()
         self._values.update(new_item._values)
+
+    def pprint(self):
+        """
+        Used for command line pretty printing.
+
+        :return: a JSON representation of the _values object indented and sorted with more relevant keys at the top.
+        :rtype: str
+        """
+        values = {k: v for k, v in self._values.copy().items() if k not in ('dock', 'bookmark_url')}
+        pp = collections.OrderedDict()
+        for key in ('id', 'name', 'description', 'app_url', 'status', 'created_at', 'updated_at', 'clients_enabled'):
+            try:
+                value = values.pop(key)
+                pp[key] = value
+            except KeyError:
+                pass
+        pp.update(values)  # copy the rest of the values over
+
+        return json.dumps(pp, indent=4)
+
+    @property
+    def all_values(self):
+        return self._values
+
+    @property
+    def summary_values(self):
+        summary = {
+            "id": self.id,
+        }
+        try:
+            summary["name"] = self.name
+        except AttributeError:
+            pass
+        return summary
 
     def __getattr__(self, item):
         try:
