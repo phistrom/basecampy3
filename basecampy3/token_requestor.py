@@ -7,6 +7,7 @@ what you put as your app's redirect URI.
 
 from bs4 import BeautifulSoup
 import requests
+from .constants import USER_AGENT
 try:
     from urlparse import urljoin, urlparse, parse_qs
 except ImportError:
@@ -18,10 +19,6 @@ class TokenRequester(object):
 
     # the authorization page for an app. (i.e. "Allow this app to access your data?")
     AUTH_URL = "https://{domain}/authorization/new?client_id={client_id}&redirect_uri={redirect_uri}&type=web_server"
-
-    # pretend to be a browser
-    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " \
-                 "Chrome/65.0.3325.181 Safari/537.36"
 
     def __init__(self, client_id, redirect_uri, user_email, user_pass, session=None):
         self.client_id = client_id
@@ -46,6 +43,7 @@ class TokenRequester(object):
 
         if self._session is None:
             self._session = requests.session()
+            self._session.headers['User-Agent'] = USER_AGENT
 
         # log in to Basecamp 3 using the username and password like a browser
         login_resp = self._use_login_form(self.client_id, self.redirect_uri, self.user_email, self.user_pass)

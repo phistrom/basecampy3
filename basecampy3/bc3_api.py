@@ -1,7 +1,7 @@
 """
 The only object you should have to import. Access all of the API from here.
 """
-from .constants import VERSION
+from .constants import USER_AGENT
 from datetime import datetime
 import dateutil.parser
 import logging
@@ -33,7 +33,6 @@ class Basecamp3(object):
                        "redirect_uri={redirect_uri}&client_secret={client_secret}&code={code}"
     REFRESH_TOKEN_URL = "https://{domain}/authorization/token?type=refresh&refresh_token={0.refresh_token}&" \
                         "client_id={0.client_id}&redirect_uri={0.redirect_uri}&client_secret={0.client_secret}"
-    USER_AGENT = "BasecamPY3 {version} (https://github.com/phistrom/basecampy3)".format(version=VERSION)
 
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, access_expires=None,
                  refresh_token=None, user_email=None, user_pass=None, conf=None):
@@ -106,7 +105,7 @@ class Basecamp3(object):
         self._conf = conf
         self._session = requests.session()
         self._session.mount("https://", adapter=Basecamp3TransportAdapter())
-        self._session.headers['User-Agent'] = self.USER_AGENT
+        self._session.headers['User-Agent'] = USER_AGENT
         self.account_id = None
         self._authorize()
         self.campfires = campfires.Campfires(self)

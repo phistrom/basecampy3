@@ -14,3 +14,5 @@ RATE_LIMIT_REQUESTS = 50
 RATE_LIMIT_PER_SECONDS = 10
 
 VERSION = __version__
+
+USER_AGENT = "BasecamPY3 {version} (https://github.com/phistrom/basecampy3)".format(version=VERSION)
