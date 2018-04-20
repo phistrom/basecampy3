@@ -64,15 +64,18 @@ class TokenRequester(object):
         soup = BeautifulSoup(resp.text, 'html.parser')
         login_form = soup.find('form', attrs={'data-behavior': 'login_form'})
         action_url = login_form.attrs['action']
+
+        # authenticity_token appears to be a CSRF token on the form, not related to the Oauth2 tokens we're seeking
+        authenticity_token = login_form.find('input', attrs={'name': 'authenticity_token'}).attrs['value']
+
         login_data = {
             'username': user_email,
             'password': user_pass,
             'utf8': "\u2713",  # checkmark
             'remember_me': 'true',
             'commit': 'Log in',
+            'authenticity_token': authenticity_token,
         }
-        # authenticity_token appears to be a CSRF token on the form, not related to the Oauth2 tokens we're seeking
-        login_data['authenticity_token'] = login_form.find('input', attrs={'name': 'authenticity_token'}).attrs['value']
 
         post_login_url = urljoin(auth_url, action_url)  # the URL to send the login form data to (form's action)
         login_resp = self._session.post(post_login_url, data=login_data)
