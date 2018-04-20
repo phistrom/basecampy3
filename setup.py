@@ -1,3 +1,4 @@
+from codecs import open
 import os
 from setuptools import setup
 
