@@ -101,6 +101,17 @@ class Project(_base.BasecampObject):
         """
         return self._endpoint._api.people.list(project=self.id)
 
+    def list_answers_in_question(self, question):
+        """
+        A list of answers for question with id
+
+        :param question: the id of question to list answers from
+        :type name: int
+        :return: a list of Answer objects
+        :rtype: collections.Iterable[basecampy3.endpoints.answers.Answer]
+        """
+        return self._endpoint._api.answers.list(project=self.id, question=question)
+
     def _get_dock_section(self, name):
         for section in self.dock:
             if section['name'] == name:

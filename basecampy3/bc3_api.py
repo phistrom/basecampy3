@@ -12,6 +12,7 @@ import traceback
 from basecampy3.exc import *
 from .config import BasecampConfig
 from .token_requestor import TokenRequester
+from .endpoints import answers
 from .endpoints import campfires
 from .endpoints import campfire_lines
 from .endpoints import messages
@@ -108,6 +109,7 @@ class Basecamp3(object):
         self._session.headers['User-Agent'] = USER_AGENT
         self.account_id = None
         self._authorize()
+        self.answers = answers.Answers(self)
         self.campfires = campfires.Campfires(self)
         self.campfire_lines = campfire_lines.CampfireLines(self)
         self.messages = messages.Messages(self)
