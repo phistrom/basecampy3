@@ -26,7 +26,7 @@ setup(
         "python-dateutil==2.7.2",
         "requests==2.18.4",
         "six==1.11.0",
-        "urllib3==1.22",
+        "urllib3==1.24.2",
     ],
     entry_points={
         'console_scripts': [
