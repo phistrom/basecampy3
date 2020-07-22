@@ -74,33 +74,34 @@ class BasecampConfig(object):
     def save(self, filepath=None):
         if filepath is None:
             filepath = self.filepath
-        try:
-            os.makedirs(os.path.dirname(filepath), mode=0o770)
-        except OSError:
-            pass  # folder probably already exists
-
-        config = ConfigParser()
-        config.add_section('BASECAMP')
-        attrs = [k for k in self.__dict__.keys() if k != 'filepath']
-        for key in attrs:
+        if filepath is not None:
             try:
-                value = getattr(self, key)
-                if value is None:
-                    continue
-                if key == "_access_expires":
-                    key = "access_expires"
-                    try:
-                        value = value.timestamp()
-                    except:
-                        continue  # if timestamp is at min value, this will fail, that's ok
-
-                config.set('BASECAMP', key, six.text_type(value))
-                setattr(self, key, value)
-            except (NoSectionError, NoOptionError):
-                pass
-        with open(filepath, "w") as fileout:
-            config.write(fileout)
-        self.filepath = filepath
+                os.makedirs(os.path.dirname(filepath), mode=0o770)
+            except OSError:
+                pass  # folder probably already exists
+    
+            config = ConfigParser()
+            config.add_section('BASECAMP')
+            attrs = [k for k in self.__dict__.keys() if k != 'filepath']
+            for key in attrs:
+                try:
+                    value = getattr(self, key)
+                    if value is None:
+                        continue
+                    if key == "_access_expires":
+                        key = "access_expires"
+                        try:
+                            value = value.timestamp()
+                        except:
+                            continue  # if timestamp is at min value, this will fail, that's ok
+    
+                    config.set('BASECAMP', key, six.text_type(value))
+                    setattr(self, key, value)
+                except (NoSectionError, NoOptionError):
+                    pass
+            with open(filepath, "w") as fileout:
+                config.write(fileout)
+            self.filepath = filepath
 
     @classmethod
     def from_filepath(cls, filepath):
