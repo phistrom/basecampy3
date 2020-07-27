@@ -14,23 +14,21 @@ import logging
 import os
 import six
 
-from .exc import *
+from . import constants, exc
 
 
 class BasecampConfig(object):
     DEFAULT_CONFIG_FILE_LOCATIONS = [
         "basecamp.conf",  # current directory
-        os.path.expanduser("~/.conf/basecamp.conf"),  # user profile directory/.conf/basecamp.conf
+        constants.DEFAULT_CONFIG_FILE,
         "/etc/basecamp.conf",
     ]
 
-    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, user_email=None, user_pass=None,
-                 access_token=None, access_expires=None, refresh_token=None, filepath=None):
+    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, access_expires=None,
+                 refresh_token=None, filepath=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
-        self.user_email = user_email
-        self.user_pass = user_pass
         self.access_token = access_token
         self._access_expires = datetime.min
         if access_expires is not None:
@@ -118,4 +116,4 @@ class BasecampConfig(object):
             except Exception as ex:
                 logging.debug("%s: %s is missing or invalid.", type(ex).__name__, config_file)
         else:
-            raise NoDefaultConfigurationFound()
+            raise exc.NoDefaultConfigurationFound()
