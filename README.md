@@ -1,7 +1,8 @@
 # BasecamPY3
 An easy-to-use Python interface to the [Basecamp 3 API](https://github.com/basecamp/bc3-api).
 
-*While BasecamPY3 aims to be equally functional in Python 2.7, the majority of testing has been in Python 3.4+ during this early stage of its development.*
+*While BasecamPY3 aims to be equally functional in Python 2.7, the majority of testing has been in Python 3.4+ during 
+this early stage of its development.*
 
 ## Features
   - Easy, AWS CLI-like configuration and installation
@@ -13,7 +14,9 @@ An easy-to-use Python interface to the [Basecamp 3 API](https://github.com/basec
 pip install basecampy3
 bc3 configure
 ```
-Follow the prompts to obtain an access and refresh token which is then saved to `~/.conf/basecamp.conf`, allowing you to call `Basecamp3()` without any parameters. You will need to make your own [Basecamp 3 app integration](https://launchpad.37signals.com/integrations) first.
+Follow the prompts to obtain an access and refresh token which is then saved to `~/.config/basecamp.conf`, allowing you 
+to call `Basecamp3()` without any parameters. You will need to make your own 
+[Basecamp 3 app integration](https://launchpad.37signals.com/integrations) first.
 
 ## Usage
 ### Basic Example
@@ -37,7 +40,10 @@ go_to_bed = todolist.create("Go to bed.")
 go_to_bed.check()  # this is marked as done
 ```
 
-**Not all functionality of the API is available yet.** For anything missing, you can use the [requests Session object](http://docs.python-requests.org/en/master/user/advanced/#session-objects) yourself directly and consult the [Basecamp 3 API docs](https://github.com/basecamp/bc3-api/tree/master/sections). The benefit of using this Session object is you will benefit from the authentication, rate-limiting, and caching features.
+**Not all functionality of the API is available yet.** For anything missing, you can use the 
+[requests Session object](https://requests.readthedocs.io/en/master/user/advanced/#session-objects) yourself directly 
+and consult the [Basecamp 3 API docs](https://github.com/basecamp/bc3-api/tree/master/sections). The benefit of using 
+this Session object is you will benefit from the authentication, rate-limiting, and caching features.
 
 ### Direct Session Example
 ```py
@@ -66,7 +72,7 @@ pprint(resp.json())  # resp.json() will make a nice dictionary of the JSON respo
 Command Line interface for doing stuff with Basecamp.
 **(not working yet)**
 ```
-  $ bc3 projects list
+  $ bc3 copy-access 12341234 87658765  # give user 87658765 access to all the projects that 12341234 does
 ```
 
 ## Todo
