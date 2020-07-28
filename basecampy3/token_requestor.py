@@ -3,7 +3,8 @@ from . import constants, oauth_server
 from .bc3_api import _create_session
 try:
     # noinspection PyCompatibility
-    from urlparse import urljoin, urlparse, parse_qs, quote
+    from urlparse import urljoin, urlparse, parse_qs
+    from urllib import quote
 except ImportError:
     # noinspection PyCompatibility
     from urllib.parse import urljoin, urlparse, parse_qs, quote

@@ -4,11 +4,12 @@ This module subclasses the basic built-in Python 3 HTTP server to listen on port
 `bc3 configure`, this module listens for the code sent in the redirect, and can return it to the CLI so the CLI can
 perform the final step of requesting access and refresh tokens from Basecamp 3 and storing them for later use.
 """
-from http.server import BaseHTTPRequestHandler, HTTPServer
 try:
     from urllib.parse import parse_qs, urlparse
+    from http.server import BaseHTTPRequestHandler, HTTPServer
 except ImportError:
     from urlparse import parse_qs, urlparse
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import six
 
 
@@ -49,7 +50,7 @@ class OAuthRequestHandler(BaseHTTPRequestHandler):
         self.server._user_code = code
 
 
-class OAuthHTTPServer(HTTPServer):
+class OAuthHTTPServer(HTTPServer, object):
     """
     Extends HTTPServer by adding a field "user_code" that can be set by the child object and makes the
     default RequestHandlerClass the `OAuthRequestHandler` defined above.
