@@ -8,6 +8,9 @@ OAUTH_URL = "https://launchpad.37signals.com"
 OAUTH_LOCAL_BIND_PORT = 33333
 """A web server will bind to this port on localhost when authorizing your oauth tokens in `bc3 configure`"""
 
+DEFAULT_REDIRECT_URI = "http://localhost:%d" % OAUTH_LOCAL_BIND_PORT
+"""The default Redirect URI recommended for your Basecamp 3 OAuth2 integration."""
+
 AUTHORIZE_URL = "%s/authorization/new?" \
                 "client_id={client_id}&redirect_uri={redirect_uri}&type=web_server" % OAUTH_URL
 """Confirms you want to allow an app (identified by client_id) to have access to your Basecamp 3 account"""

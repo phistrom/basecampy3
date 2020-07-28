@@ -13,6 +13,7 @@ class Basecamp3Error(Exception):
             return u"%s %s %s" % (self.response.status_code, self.response.reason, self.response.text)
         if self.message is not None:
             return self.message
+        return type(self).__name__
 
 
 class InvalidRefreshTokenError(Basecamp3Error):
@@ -36,4 +37,6 @@ class ProjectCreationTimedOutError(Basecamp3Error):
 
 
 class NoDefaultConfigurationFound(Basecamp3Error):
-    pass
+    def __init__(self, response=None, message=None):
+        super(NoDefaultConfigurationFound, self).__init__(response, message)
+        self.message = "No default configuration could be found. Try running `bc3 configure` from the command line."
