@@ -80,6 +80,8 @@ class Basecamp3(object):
                                   access_token=access_token, refresh_token=refresh_token, access_expires=access_expires)
         elif conf is None:
             conf = BasecampConfig.load_from_default_paths()
+        elif conf is not None:
+            pass
         else:
             raise ValueError("Need a valid BasecampConfig object, a refresh token, an access token, or enough "
                              "information to get our own refresh tokens (client_id, client_secret, redirect_uri, "
