@@ -42,13 +42,13 @@ class Basecamp3TransportAdapter(adapters.HTTPAdapter):
         self._set_cache_headers(request)
         method = request.method
         url = request.url
-        logging.debug("Consulting with Semaphore")
+        logger.debug("Consulting with Semaphore")
         with Basecamp3TransportAdapter.SEMAPHORE:  # blocks here until rate limit has cooled off
-            logging.debug("OK we can request now.")
+            logger.debug("OK we can request now.")
             response = super(Basecamp3TransportAdapter, self).send(request, *args, **kwargs)
         if response.status_code == 304:  # not modified; cache hit
             cached_response = self._cache.get_cached_response(method, url)
-            logging.debug("Returning a cached response for %s, %s", method, url)
+            logger.debug("Returning a cached response for %s, %s", method, url)
             return cached_response
         else:
             self._cache_this_response(response)
