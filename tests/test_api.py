@@ -1,6 +1,6 @@
 import unittest
 import uuid
-from basecampy3 import Basecamp3
+from basecampy3 import Basecamp3, config, constants
 from datetime import datetime
 import logging
 
@@ -17,6 +17,32 @@ class APITest(unittest.TestCase):
         for project in self.api.projects.list():
             if project.name.startswith(self.PROJECT_TEST_NAME_PREFIX):
                 project.trash()
+
+    def test_direct_parameters(self):
+        conf = config.BasecampFileConfig.from_filepath(constants.DEFAULT_CONFIG_FILE)
+        parameters = {k: getattr(conf, k) for k in config.BasecampConfig.FIELDS_TO_PERSIST}
+
+        # first we'll try with a custom BasecampConfig object passed into the Basecamp3 constructor
+        custom_config = config.BasecampMemoryConfig(**parameters)
+        bc3a = Basecamp3(conf=custom_config)
+        p = None
+        for p in bc3a.projects.list():
+            break
+        assert p is not None
+
+        # next we'll pass the parameters directly into the Basecamp3 constructor
+        bc3b = Basecamp3(**parameters)
+        p = None
+        for p in bc3b.projects.list():
+            break
+        assert p is not None
+
+        # next we'll try with just an access_token and nothing else
+        bc3c = Basecamp3(access_token=conf.access_token)
+        p = None
+        for p in bc3c.projects.list():
+            break
+        assert p is not None
 
     def test_projects(self):
         """

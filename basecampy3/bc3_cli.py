@@ -9,8 +9,7 @@ import traceback
 from basecampy3 import Basecamp3
 from basecampy3.bc3_api import _create_session
 from basecampy3.token_requestor import TokenRequester
-from basecampy3.config import BasecampConfig
-from basecampy3 import constants
+from basecampy3 import config, constants
 
 try:
     # noinspection PyShadowingBuiltins
@@ -106,8 +105,9 @@ class CLI(object):
             if not location:
                 location = constants.DEFAULT_CONFIG_FILE
             try:
-                conf = BasecampConfig(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri,
-                                      access_token=tokens['access_token'], refresh_token=tokens['refresh_token'])
+                conf = config.BasecampFileConfig(client_id=client_id, client_secret=client_secret,
+                                                 redirect_uri=redirect_uri, access_token=tokens['access_token'],
+                                                 refresh_token=tokens['refresh_token'])
                 conf.save(location)
                 break
             except Exception:

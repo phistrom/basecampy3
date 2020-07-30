@@ -23,6 +23,7 @@ setup(
         "chardet",
         "idna",
         "python-dateutil",
+        "pytz",
         "requests",
         "six",
         "urllib3",

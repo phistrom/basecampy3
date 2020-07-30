@@ -3,13 +3,11 @@ The Basecamp3 class should be the only thing you need to import to access just a
 """
 from datetime import datetime
 import dateutil.parser
-import logging
+import pytz
 import requests
 from .transport_adapter import Basecamp3TransportAdapter
-import traceback
 
-from . import constants, exc
-from .config import BasecampConfig
+from . import config, constants, exc
 from .endpoints import answers
 from .endpoints import campfires
 from .endpoints import campfire_lines
@@ -33,9 +31,8 @@ def _create_session():
 
 
 class Basecamp3(object):
-
-    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, access_expires=None,
-                 refresh_token=None, conf=None):
+    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
+                 conf=None):
         """
         Create a new Basecamp 3 API connection. The following combinations of parameters are valid:
 
@@ -45,6 +42,12 @@ class Basecamp3(object):
         2. `refresh_token`
             With `client_id`, `client_secret`, `redirect_uri`, and a `refresh_token`, we can obtain and refresh our
             own `access_token`. `refresh_token`s don't seem to have a limit so this is ideal for automation.
+        3. `conf`
+            Specify a BasecampConfig object instead of all the other parameters. This is the preferred method because
+            then BasecamPY3 can potentially save new access tokens acquired by the refresh token to whatever
+            persistence method backs the BasecampConfig.
+
+        It is an error to specify conf with any other parameter.
 
         `client_id`, `client_secret`, and `redirect_uri` can be obtained by creating a new app here:
             https://launchpad.37signals.com/integrations
@@ -55,8 +58,8 @@ class Basecamp3(object):
         `access_token` and `refresh_token` are normally obtained when a user clicks your app integration page and
         presses the big green "Yes, I'll allow access" button, which redirects them to your `redirect_uri` with a
         authorization code attached to it. Your app then uses its client_secret and client_id to obtain the tokens with
-        this authorization code. Since that is a long and confusing process that requires you to set up a web server
-        to answer the `redirect_uri`, see below on how this API makes it easy to obtain.
+        this authorization code. Use `bc3 configure` from the command line to be guided through obtaining access and
+        refresh tokens on behalf of your integration.
 
         :param client_id: your app's client_id is given to you when you create a new app
         :type client_id: str
@@ -66,26 +69,29 @@ class Basecamp3(object):
         :type redirect_uri: str
         :param access_token: an access token you have obtained from a user
         :type access_token: str
-        :param access_expires: (optional) when the access token will expire as a datetime or datetime.timestamp float
-        :type access_expires: datetime.datetime|float
         :param refresh_token: a refresh token obtained from a user, used for obtaining a new access_token
         :type refresh_token: str
         :param conf: a BasecampConfig object with all the settings we need so that we don't have to fill out all
                          these parameters
         :type conf: basecampy3.config.BasecampConfig
         """
-        can_refresh_access_tokens = refresh_token and client_id and client_secret and redirect_uri
-        if access_token or can_refresh_access_tokens:
-            conf = BasecampConfig(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri,
-                                  access_token=access_token, refresh_token=refresh_token, access_expires=access_expires)
-        elif conf is None:
-            conf = BasecampConfig.load_from_default_paths()
-        elif conf is not None:
-            pass
-        else:
-            raise ValueError("Need a valid BasecampConfig object, a refresh token, an access token, or enough "
-                             "information to get our own refresh tokens (client_id, client_secret, redirect_uri, "
-                             "username, and password)")
+        has_direct_values = client_id or client_secret or redirect_uri or access_token or refresh_token
+        if conf and has_direct_values:
+            raise ValueError("You cannot specify a BasecampConfig object as well as direct values such as client_id or "
+                             "redirect_uri")
+        if has_direct_values:  # user provided fields in constructor
+            conf = config.BasecampMemoryConfig(client_id=client_id, client_secret=client_secret,
+                                               redirect_uri=redirect_uri, access_token=access_token,
+                                               refresh_token=refresh_token)
+            if not conf.is_usable:  # user didn't provide enough fields in constructor
+                raise ValueError("Unable to use the Basecamp 3 API. Not enough information provided.")
+        elif conf is None:  # user provided no fields at all, look for a saved config file (the preferred way to run)
+            conf = config.BasecampFileConfig.load_from_default_paths()
+
+        # if the user didn't provide a config or the config we found on disk is unusable, we have to quit
+        if conf is None or not conf.is_usable:
+            # pretty sure this is impossible. load_from_default_paths() raises an Exception if no config is found
+            raise ValueError("Unable to find a suitable Basecamp 3 configuration. Try running `bc3 configure`.")
 
         self._conf = conf
         self._session = _create_session()
@@ -114,11 +120,28 @@ class Basecamp3(object):
 
         :return: a dict with current user data
         """
-        data = self._get_data(constants.AUTHORIZATION_JSON_URL)
+        data = self._get_data(constants.AUTHORIZATION_JSON_URL, False)
         return data.json()
 
     @classmethod
     def trade_user_code_for_access_token(cls, client_id, redirect_uri, client_secret, code, session=None):
+        """
+        Used during `bc3 configure` to interactively obtain an access_token and refresh_token from Basecamp.
+
+        :param client_id: your integration's Client ID
+        :type client_id: str
+        :param redirect_uri: your integration's Redirect URI
+        :type redirect_uri: str
+        :param client_secret: your integration's Client Secret
+        :type client_secret: str
+        :param code: when a user clicks the "Allow" button in their browser on the authorization screen, they are
+                        redirected to your Redirect URI with this code appended as ?code=CODE
+        :type code: str
+        :param session: optionally specify your own Session object
+        :type session: requests.Session
+        :return: a dictionary representation of the JSON response from the authorization endpoint
+        :rtype: dict
+        """
         access_token_url = constants.ACCESS_TOKEN_URL.format(client_id=client_id, redirect_uri=redirect_uri,
                                                              client_secret=client_secret, code=code)
         if session is None:
@@ -131,6 +154,16 @@ class Basecamp3(object):
         return token_json
 
     def _get_data(self, url, auto_reauthorize=True):
+        """
+        Perform a GET request with automatic reauthorizations if the access_token has expired.
+
+        :param url: the URL to send a GET request to
+        :type url: str
+        :param auto_reauthorize: whether to automatically try to re-authorize on a 401 Unauthorized response
+        :type auto_reauthorize: bool
+        :return: the Response object
+        :rtype: requests.Response
+        """
         times_to_try = 2 if auto_reauthorize else 1
         resp = None
         for attempt in range(0, times_to_try):
@@ -157,31 +190,35 @@ class Basecamp3(object):
 
         if self._is_token_expired():
             self._get_access_token()
-        self._apply_token_to_headers()  # set our access token to the Authorization header for this session
         self.account_id = self._get_account_id()  # set our Basecamp account ID used in many API calls
 
     def _apply_token_to_headers(self):
         self._session.headers['Authorization'] = 'Bearer %s' % self._conf.access_token
 
     def _get_access_token(self):
-        if self._conf.refresh_token:
-            try:
-                token_json = self._refresh_access_token()
-                self._save_token_json(token_json)
-                return  # if there wasn't an error, the access token is ready to go
-            except exc.InvalidRefreshTokenError:
-                self._conf.refresh_token = None  # this is a bad token
-
-        # token_req = TokenRequester(self._conf.client_id, self._conf.redirect_uri,
-        #                            self._conf.user_email, self._conf.user_pass)
-        # code = token_req.get_user_code()
-        #
-        # token_json = self.trade_user_code_for_access_token(client_id=self._conf.client_id,
-        #                                                    redirect_uri=self._conf.redirect_uri,
-        #                                                    client_secret=self._conf.client_secret, code=code)
-        # self._save_token_json(token_json)
+        """
+        Use our refresh_token to get a new access_token. This updates our BasecampConfig object with the new values.
+        """
+        if not self._conf.refresh_token:
+            raise exc.InvalidRefreshTokenError(message="No refresh_token provided. Cannot obtain a new access_token.")
+        try:
+            token_json = self._refresh_access_token()
+            if 'access_token' in token_json:
+                self._conf.access_token = token_json['access_token']
+                self._apply_token_to_headers()
+            if 'refresh_token' in token_json:
+                self._conf.refresh_token = token_json['refresh_token']
+            self._conf.save()
+        except exc.InvalidRefreshTokenError as ex:
+            self._conf.refresh_token = None  # this is a bad token
+            raise ex
 
     def _get_account_id(self):
+        """
+        Get the account ID for this user. Returns the first account ID found where the product field is "bc3".
+        :return: str
+        """
+        # TODO user can belong to multiple accounts. Force user to pick one during bc3 configure phase and save to conf
         identity = self.who_am_i
         for acct in identity['accounts']:
             if acct['product'] == 'bc3':
@@ -196,15 +233,15 @@ class Basecamp3(object):
         """
         if not self._conf.access_token:
             return True
-        self._apply_token_to_headers()  # ok then lets apply this token to our session if it's not there already
-        try:
-            resp = self._get_data(constants.AUTHORIZATION_JSON_URL, False)
-        except Exception as ex:
-            logging.debug("Token is expired: %s" % traceback.format_exc())
-            return True
-        expires_at = dateutil.parser.parse(resp.json()['expires_at'])
-        expires_at = expires_at.replace(tzinfo=None)
-        return datetime.utcnow() >= expires_at
+        self._apply_token_to_headers()  # apply our current access_token to our session if it's not there already
+        data = self.who_am_i
+
+        # the format of the expires_at date in the JSON response is ISO 8601
+        # YYYY-mm-ddTHH:MM:SS.fffZ
+        expires_at = dateutil.parser.isoparse(data['expires_at'])
+        expires_at = expires_at.astimezone(pytz.utc)  # just in case Basecamp 3 decides to stop being UTC
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        return now >= expires_at
 
     def _refresh_access_token(self):
         url = constants.REFRESH_TOKEN_URL.format(self._conf)
@@ -214,12 +251,3 @@ class Basecamp3(object):
         token_json = resp.json()
 
         return token_json
-
-    def _save_token_json(self, token_json):
-        if 'access_token' in token_json:
-            self._conf.access_token = token_json['access_token']
-        if 'refresh_token' in token_json:
-            self._conf.refresh_token = token_json['refresh_token']
-        if 'expires_in' in token_json:
-            self._conf.access_expires = token_json['expires_in']
-        self._conf.save()
