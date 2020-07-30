@@ -47,6 +47,19 @@ class DictionaryCache(ResponseCache):
         self._add_to_cache(key, etag, last_modified, response)
 
     def _add_to_cache(self, key, etag, last_modified, response):
+        """
+        Handle adding a new entry to the cache, popping off cache entries in a FIFO order if the dictionary exceeds
+        the maximum size.
+
+        :param key: the unique key to use to store this item for lookup later, i.e. tuple(method, url)
+        :type key: tuple[str]
+        :param etag: the ETag provided in the response for easy access later
+        :type etag: str
+        :param last_modified: the Last-Modified header in the response for easy access later
+        :type last_modified: str
+        :param response: the entire response object
+        :type response: requests.Response
+        """
         item = (etag, last_modified, response)
 
         try:

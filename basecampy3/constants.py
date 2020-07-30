@@ -19,11 +19,11 @@ AUTHORIZATION_JSON_URL = "%s/authorization.json" % OAUTH_URL
 
 ACCESS_TOKEN_URL = "%s/authorization/token?type=web_server&client_id={client_id}&" \
                        "redirect_uri={redirect_uri}&client_secret={client_secret}&code={code}" % OAUTH_URL
-"""Using the code received during initial authentication, obtain access and refresh tokens"""
+"""Using the code received during initial authentication, obtain access and refresh tokens."""
 
 REFRESH_TOKEN_URL = "%s/authorization/token?type=refresh&refresh_token={0.refresh_token}&" \
                     "client_id={0.client_id}&redirect_uri={0.redirect_uri}&client_secret={0.client_secret}" % OAUTH_URL
-"""Using a saved refresh token, apply for new """
+"""Using a saved refresh token, apply for new access token."""
 
 DEFAULT_CONFIG_FILE = os.path.expanduser(os.path.join("~", ".config", "basecamp.conf"))
 

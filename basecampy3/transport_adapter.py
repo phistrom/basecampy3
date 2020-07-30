@@ -1,20 +1,31 @@
-import logging
 from requests import adapters
-from .rated_semaphore import RatedSemaphore
-from .dictionary_cache import DictionaryCache
 from .constants import RATE_LIMIT_PER_SECONDS, RATE_LIMIT_REQUESTS
+from .log import logger
+from .dictionary_cache import DictionaryCache
+from .rated_semaphore import RatedSemaphore
 
 
 class Basecamp3TransportAdapter(adapters.HTTPAdapter):
     """
-    Handles API request caching and rate limiting.
+    Handles API request caching and rate-limiting.
     """
 
-    # See https://github.com/basecamp/bc3-api#rate-limiting-429-too-many-requests
-    # keeps us under the limit
     SEMAPHORE = RatedSemaphore(RATE_LIMIT_REQUESTS, RATE_LIMIT_PER_SECONDS)
+    """
+    Used to keep us under the limits defined here 
+    https://github.com/basecamp/bc3-api#rate-limiting-429-too-many-requests
+    A `RatedSemaphore` allows us to block if we hit the API limits.
+    """
 
     def __init__(self, cache_backend=None, *args, **kwargs):
+        """
+        Applied to a requests.Session object to implement caching and rate-limiting
+
+        :param cache_backend: stores responses for later retrieval if the response is unchanged
+        :type cache_backend: basecampy3.response_cache.ResponseCache
+        :param args: whatever args are supported by requests.adapters.HTTPAdapter
+        :param kwargs: whatever kwargs are supported by requests.adapters.HTTPAdapter
+        """
         self._cache = DictionaryCache() if cache_backend is None else cache_backend
         super(Basecamp3TransportAdapter, self).__init__(*args, **kwargs)
 
@@ -44,6 +55,12 @@ class Basecamp3TransportAdapter(adapters.HTTPAdapter):
             return response
 
     def _cache_this_response(self, response):
+        """
+        Cache the given HTTP response in the cache backend.
+
+        :param response: the HTTP response to cache
+        :type response: requests.Response
+        """
         url = response.request.url
         self._cache.set_cached(response)
 
@@ -52,7 +69,7 @@ class Basecamp3TransportAdapter(adapters.HTTPAdapter):
         If this request has been made before, get the ETag and Last-Modified headers from the response to it,
         and set the If-None-Match and If-Modified-Since headers on this new request.
 
-
+        :param request: the HTTP request object to apply cache headers to
         :type request: requests.PreparedRequest
         """
         etag, last_modified = self._cache.get_cached_headers(request.method, request.url)
