@@ -1,7 +1,7 @@
 from requests import adapters
 from .constants import RATE_LIMIT_PER_SECONDS, RATE_LIMIT_REQUESTS
 from .log import logger
-from .dictionary_cache import DictionaryCache
+from .cache import DictionaryCache
 from .rated_semaphore import RatedSemaphore
 
 
