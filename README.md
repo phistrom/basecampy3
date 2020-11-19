@@ -18,6 +18,23 @@ Follow the prompts to obtain an access and refresh token which is then saved to 
 to call `Basecamp3()` without any parameters. You will need to make your own 
 [Basecamp 3 app integration](https://launchpad.37signals.com/integrations) first.
 
+### Storing in environment variables
+Once you have the credentials you can store them in environment variables:
+
+* BASECAMP_CLIENT_ID
+* BASECAMP_CLIENT_SECRET
+* BASECAMP_REDIRECT_URL
+* BASECAMP_ACCESS_TOKEN
+* BASECAMP_REFRESH_TOKEN
+
+This will allow to easier deploys using CI, initializing with:
+
+```py
+from basecampy3 import Basecamp3
+
+bc3 = Basecamp3.from_environment()
+```
+
 ## Usage
 ### Basic Example
 ```py

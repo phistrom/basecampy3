@@ -1,6 +1,7 @@
 """
 The Basecamp3 class should be the only thing you need to import to access just about all the functionality you need.
 """
+import os
 from datetime import datetime
 import dateutil.parser
 import pytz
@@ -112,6 +113,26 @@ class Basecamp3(object):
         self.todolist_groups = todolist_groups.TodoListGroups(self)
         self.todos = todos.Todos(self)
         self.todosets = todosets.TodoSets(self)
+
+    @classmethod
+    def from_environment(cls):
+        """
+        Alternative constructor that takes the authorization data from environment variables:
+
+        - BASECAMP_CLIENT_ID
+        - BASECAMP_CLIENT_SECRET
+        - BASECAMP_REDIRECT_URL
+        - BASECAMP_ACCESS_TOKEN
+        - BASECAMP_REFRESH_TOKEN
+        """
+        env = os.environ
+        return cls(
+            client_id=env['BASECAMP_CLIENT_ID'],
+            client_secret=env['BASECAMP_CLIENT_SECRET'],
+            redirect_uri=env['BASECAMP_REDIRECT_URL'],
+            access_token=env['BASECAMP_ACCESS_TOKEN'],
+            refresh_token=env['BASECAMP_REFRESH_TOKEN']
+        )
 
     @property
     def who_am_i(self):
