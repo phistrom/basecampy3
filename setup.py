@@ -16,7 +16,8 @@ setup(
     version=about['__version__'],
     packages=[
         'basecampy3',
-        'basecampy3.endpoints'
+        'basecampy3.endpoints',
+        'basecampy3.cache',
     ],
     install_requires=[
         "certifi",
