@@ -1,3 +1,10 @@
+"""
+To-do Sets
+https://github.com/basecamp/bc3-api/blob/master/sections/todosets.md
+
+There's one of these per project. All to-do list objects are children of the project's
+To-do Set.
+"""
 from . import _base, projects, util
 from .. import constants
 

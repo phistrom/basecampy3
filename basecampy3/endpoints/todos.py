@@ -1,3 +1,9 @@
+"""
+To-Do Items
+https://github.com/basecamp/bc3-api/blob/master/sections/todos.md
+
+Individual checkboxes on a TodoList object.
+"""
 from . import recordings, util
 import six
 

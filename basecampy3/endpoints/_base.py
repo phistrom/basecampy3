@@ -70,7 +70,7 @@ class BasecampEndpoint(object):
     def __init__(self, api):
         """
         :param api: the API object that handles authorization and HTTP requests
-        :type api: basecamp3.bc3_api.Basecamp3
+        :type api: basecampy3.bc3_api.Basecamp3
         """
         self._api = api
         self.url = urljoin(self.URL, "/%s" % api.account_id)
