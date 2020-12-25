@@ -234,17 +234,19 @@ class Projects(_base.BasecampEndpoint):
                 is the behavior of the list projects API call)
         :rtype: list[Project]
         """
-        if not (any or name or description):
+        any_ = any
+        del any
+        if not (any_ or name or description):
             raise ValueError("Must specify at least one search term.")
-        if any:
+        if any_:
             try:
-                _ = any.search  # assignment makes PyCharm not complain
-                name_regex = any
+                _ = any_.search  # assignment makes PyCharm not complain
+                name_regex = any_
                 name_str = None
-                desc_regex = any
+                desc_regex = any_
                 desc_str = None
             except AttributeError:
-                any_upper = any.upper()
+                any_upper = any_.upper()
                 name_regex = None
                 name_str = any_upper
                 desc_regex = None
@@ -268,7 +270,7 @@ class Projects(_base.BasecampEndpoint):
         project_generator = self.list(status=status)
         matches = []
         for project in project_generator:
-            if self._is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any):
+            if self._is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any_):
                 matches.append(project)
         return matches
 
@@ -292,6 +294,8 @@ class Projects(_base.BasecampEndpoint):
         :return: True if all non-None parameters matched the Project's name and/or description
         :rtype: bool
         """
+        any_ = any
+        del any
         project_description = project.description.upper() if project.description else ""
         name_str_match = name_str is None or name_str in project.name.upper()
         name_regex_match = name_regex is None or name_regex.search(project.name)
@@ -299,7 +303,7 @@ class Projects(_base.BasecampEndpoint):
         desc_regex_match = desc_regex is None or desc_regex.search(project.description)
         name_matched = name_str_match and name_regex_match
         desc_matched = desc_str_match and desc_regex_match
-        if any:
+        if any_:
             return name_matched or desc_matched
         else:
             return name_matched and desc_matched
