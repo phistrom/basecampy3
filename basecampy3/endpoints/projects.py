@@ -236,7 +236,7 @@ class Projects(_base.BasecampEndpoint):
         """
         if not any_ and kwargs.get('any'):
             any_ = kwargs.pop('any')
-        if not (any_ or name or description):
+        if not any((any_, name, description)):
             raise ValueError("Must specify at least one search term.")
         if any_:
             try:
