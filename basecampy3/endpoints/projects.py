@@ -240,7 +240,6 @@ class Projects(_base.BasecampEndpoint):
             raise ValueError("Must specify at least one search term.")
         if any_:
             try:
-                _ = any_.search  # assignment makes PyCharm not complain
                 name_regex = any_
                 name_str = None
                 desc_regex = any_
@@ -253,14 +252,12 @@ class Projects(_base.BasecampEndpoint):
                 desc_str = any_upper
         else:
             try:
-                _ = name.search
                 name_regex = name
                 name_str = None
             except AttributeError:
                 name_regex = None
                 name_str = name.upper() if name else None
             try:
-                _ = description.search
                 desc_regex = description
                 desc_str = None
             except AttributeError:  # hopefully they gave us a string then
