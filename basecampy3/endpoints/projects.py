@@ -234,8 +234,7 @@ class Projects(_base.BasecampEndpoint):
                 is the behavior of the list projects API call)
         :rtype: list[Project]
         """
-        any_ = any
-        del any
+        any_ = locals().pop('any')
         if not (any_ or name or description):
             raise ValueError("Must specify at least one search term.")
         if any_:
@@ -291,8 +290,7 @@ class Projects(_base.BasecampEndpoint):
         :return: True if all non-None parameters matched the Project's name and/or description
         :rtype: bool
         """
-        any_ = any
-        del any
+        any_ = locals().pop('any')
         project_description = project.description.upper() if project.description else ""
         name_str_match = name_str is None or name_str in project.name.upper()
         name_regex_match = name_regex is None or name_regex.search(project.name)
