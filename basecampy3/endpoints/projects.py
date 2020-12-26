@@ -202,7 +202,7 @@ class Projects(_base.BasecampEndpoint):
         new_project = self._create(url, data=data)
         return new_project
 
-    def find(self, any=None, name=None, description=None, status=None):
+    def find(self, any_=None, name=None, description=None, status=None, **kwargs):
         """
         Finds Projects by name and/or description. The Basecamp 3 API does not have a search function for Projects so
         this function has to iterate through all projects to search. Bare that in mind when considering the performance
@@ -220,9 +220,9 @@ class Projects(_base.BasecampEndpoint):
         function will be called on the object. Case-sensitivity will depend on your compiled regular expression having
         the re.IGNORECASE flag.
 
-        :param any: a string or regular expression to match against Project names AND descriptions. If any part of a
+        :param any_: a string or regular expression to match against Project names AND descriptions. If any part of a
                     Project name or description matches the string, it will be considered a match.
-        :type any: str|typing.Pattern
+        :type any_: str|typing.Pattern
         :param name: a string or regular expression to search project names for
         :type name: str|typing.Pattern
         :param description: a string or regular expression to search project descriptions for
@@ -234,31 +234,30 @@ class Projects(_base.BasecampEndpoint):
                 is the behavior of the list projects API call)
         :rtype: list[Project]
         """
-        if not (any or name or description):
+        if not any_ and kwargs.get('any'):
+            any_ = kwargs.pop('any')
+        if not any((any_, name, description)):
             raise ValueError("Must specify at least one search term.")
-        if any:
+        if any_:
             try:
-                _ = any.search  # assignment makes PyCharm not complain
-                name_regex = any
+                name_regex = any_
                 name_str = None
-                desc_regex = any
+                desc_regex = any_
                 desc_str = None
             except AttributeError:
-                any_upper = any.upper()
+                any_upper = any_.upper()
                 name_regex = None
                 name_str = any_upper
                 desc_regex = None
                 desc_str = any_upper
         else:
             try:
-                _ = name.search
                 name_regex = name
                 name_str = None
             except AttributeError:
                 name_regex = None
                 name_str = name.upper() if name else None
             try:
-                _ = description.search
                 desc_regex = description
                 desc_str = None
             except AttributeError:  # hopefully they gave us a string then
@@ -268,12 +267,12 @@ class Projects(_base.BasecampEndpoint):
         project_generator = self.list(status=status)
         matches = []
         for project in project_generator:
-            if self._is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any):
+            if self._is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any_):
                 matches.append(project)
         return matches
 
     @staticmethod
-    def _is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any):
+    def _is_project_a_match(project, name_str, name_regex, desc_str, desc_regex, any_, **kwargs):
         """
         Given a Project, find out if it is a match for our regular expressions or strings.
 
@@ -287,11 +286,13 @@ class Projects(_base.BasecampEndpoint):
         :type desc_str: str
         :param desc_regex: a re.compile object to call .search() to see if it matches the Project description or None
         :type desc_regex: typing.Pattern
-        :param any: if truthy, returns a True if name OR description match. Else returns true only if name AND
+        :param any_: if truthy, returns a True if name OR description match. Else returns true only if name AND
                     description matched
         :return: True if all non-None parameters matched the Project's name and/or description
         :rtype: bool
         """
+        if not any_ and kwargs.get('any'):
+            any_ = kwargs.pop('any')
         project_description = project.description.upper() if project.description else ""
         name_str_match = name_str is None or name_str in project.name.upper()
         name_regex_match = name_regex is None or name_regex.search(project.name)
@@ -299,7 +300,7 @@ class Projects(_base.BasecampEndpoint):
         desc_regex_match = desc_regex is None or desc_regex.search(project.description)
         name_matched = name_str_match and name_regex_match
         desc_matched = desc_str_match and desc_regex_match
-        if any:
+        if any_:
             return name_matched or desc_matched
         else:
             return name_matched and desc_matched
