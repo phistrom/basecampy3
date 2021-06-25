@@ -20,14 +20,10 @@ setup(
         'basecampy3.cache',
     ],
     install_requires=[
-        "certifi",
-        "chardet",
-        "idna",
         "python-dateutil",
         "pytz",
         "requests",
         "six",
-        "urllib3",
     ],
     entry_points={
         'console_scripts': [
