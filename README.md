@@ -65,10 +65,12 @@ this Session object is you will benefit from the authentication, rate-limiting, 
 ### Direct Session Example
 ```py
 from basecampy3 import Basecamp3
-from pprint import pprint
+import json
 
 bc3 = Basecamp3()
 session = bc3._session
+
+# replace these with actual IDs of the Basecamp objects you wish to get
 MY_COMPANY_ID = 1234567
 recording_id = 123456789
 project_id = 1234567
@@ -81,7 +83,9 @@ url = ENDPOINT.format(base_url=BASE_URL, project_id=project_id, recording_id=rec
 resp = session.get(url)  # make a GET request. Substitute get() with post() or put() or delete() as needed
 if not resp.ok:  # API returned a 4XX or 5XX error
     print("Something went wrong.")
-pprint(resp.json())  # resp.json() will make a nice dictionary of the JSON response from Basecamp
+data = resp.json()
+pretty_print = json.dumps(data, indent=4)
+print(pretty_print)
 ```
 
 ### CLI Example
