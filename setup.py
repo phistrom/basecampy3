@@ -35,7 +35,7 @@ setup(
     author='Phillip Stromberg',
     author_email='phillip@strombergs.com',
     description='Aims to be the easiest to use version of the Basecamp 3 API',
-    classifiers=(
+    classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: English',
@@ -44,7 +44,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-    ),
+    ],
     zip_safe=False,
     long_description=long_description,
     long_description_content_type="text/markdown"
