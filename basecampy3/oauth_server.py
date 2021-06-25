@@ -1,8 +1,8 @@
 """
-To complete the Oauth2 flow, a "code" is sent as a GET parameter to the redirect URI on the authorization page.
-This module subclasses the basic built-in Python 3 HTTP server to listen on port 333333 of the localhost. When running
-`bc3 configure`, this module listens for the code sent in the redirect, and can return it to the CLI so the CLI can
-perform the final step of requesting access and refresh tokens from Basecamp 3 and storing them for later use.
+To complete the Oauth2 flow, a "code" is sent as a GET parameter to the redirect URI on the authorization page. This
+module subclasses the basic built-in Python 3 HTTP server to listen on port 33333 of the localhost by default. When
+running `bc3 configure`, this module listens for the code sent in the redirect, and can return it to the CLI so the CLI
+can perform the final step of requesting access and refresh tokens from Basecamp 3 and storing them for later use.
 """
 try:
     from urllib.parse import parse_qs, urlparse
@@ -60,7 +60,7 @@ class OAuthHTTPServer(HTTPServer, object):
         :param server_address: a tuple of the form (local_ip_address, listen_port)
         :type server_address: tuple[str, int]
         :param RequestHandlerClass: the class that will be instantiated for each request to handle the request
-        :type RequestHandlerClass: OAuthRequestHandler
+        :type RequestHandlerClass: type[OAuthRequestHandler]
         """
         self._user_code = None
         super(OAuthHTTPServer, self).__init__(server_address, RequestHandlerClass)
@@ -70,16 +70,18 @@ class OAuthHTTPServer(HTTPServer, object):
         return self._user_code
 
 
-def wait_for_user_response(listen_port):
+def wait_for_user_response(listen_addr, listen_port):
     """
     Start a web server on localhost at the specified port and wait for a single request to come in. Return the
     "code" parameter after the redirect URI.
+    :param listen_addr: the address to bind to for listening. For security reasons, this is best left at 127.0.0.1
+    :type listen_addr: str
     :param listen_port: the port for this HTTP server to listen on
     :type listen_port: int
     :return: the code GET param from the redirect URI (the part after the question mark)
     :rtype: str
     """
-    server_addr = ('127.0.0.1', listen_port)
+    server_addr = (listen_addr, listen_port)
     # server = httpserver.HTTPServer(server_addr, OAuthRequestHandler)
     server = OAuthHTTPServer(server_addr, OAuthRequestHandler)
     server.handle_request()  # handle only one request (as opposed to "serve_forever")

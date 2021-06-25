@@ -4,6 +4,7 @@ This module is responsible for the "bc3" command line tool functionality.
 """
 import argparse
 import logging
+import os
 import traceback
 
 from basecampy3 import Basecamp3
@@ -70,7 +71,7 @@ class CLI(object):
         print("\n")
         client_id = input("What is your app's Client ID? ").strip()
         client_secret = input("What is your app's Client Secret? ").strip()
-        redirect_uri = input("What is your redirect URI. (Press enter to use the stongly recommended default '%s') " %
+        redirect_uri = input("What is your redirect URI? (Press enter to use the stongly recommended default '%s') " %
                              constants.DEFAULT_REDIRECT_URI)
 
         if not (client_id and client_secret):
@@ -100,9 +101,11 @@ class CLI(object):
         if should_save is False:
             return
         while True:
-            location = input("Where should I save? (default %s)" % constants.DEFAULT_CONFIG_FILE)
-            location = location.strip()
-            if not location:
+            location = None
+            if os.getenv("BC3_CONTAINER") != "1":  # don't prompt user for location in a container
+                location = input("Where should I save? (default %s)" % constants.DEFAULT_CONFIG_FILE)
+                location = location.strip()
+            if not location:  # we're in a container or no response from user so use the default
                 location = constants.DEFAULT_CONFIG_FILE
             try:
                 conf = config.BasecampFileConfig(client_id=client_id, client_secret=client_secret,
@@ -150,8 +153,9 @@ def main():
     """
     Entrypoint for the bc3 console script installed by `pip install basecampy3`.
     """
-    return CLI.from_command_line()
+    CLI.from_command_line()
+    exit(0)
 
 
 if __name__ == "__main__":
-    cli = main()
+    main()

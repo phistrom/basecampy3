@@ -1,3 +1,7 @@
+"""
+Constants used throughout the basecampy3 package. Some constants are assigned by environment variables at startup.
+"""
+
 from .__version__ import __version__
 import os
 
@@ -5,11 +9,16 @@ API_URL = "https://3.basecampapi.com/"
 
 OAUTH_URL = "https://launchpad.37signals.com"
 
+OAUTH_LOCAL_BIND_ADDRESS = os.getenv("BC3_OAUTH_BIND_ADDRESS", "127.0.0.1")
+"""A web server will bind to this address when authorizing your oauth tokens in `bc3 configure`. If running in a 
+container, you may need to set this to 0.0.0.0 to listen to 'external' connections from the host (i.e. you)"""
+
 OAUTH_LOCAL_BIND_PORT = 33333
-"""A web server will bind to this port on localhost when authorizing your oauth tokens in `bc3 configure`"""
+"""A web server will bind to this port on OAUTH_LOCAL_BIND_ADDRESS when authorizing your oauth tokens 
+in `bc3 configure`"""
 
 DEFAULT_REDIRECT_URI = "http://localhost:%d" % OAUTH_LOCAL_BIND_PORT
-"""The default Redirect URI recommended for your Basecamp 3 OAuth2 integration."""
+"""The default Redirect URI recommended for your Basecamp 3 OAuth2 integration. This should always be localhost"""
 
 AUTHORIZE_URL = "%s/authorization/new?" \
                 "client_id={client_id}&redirect_uri={redirect_uri}&type=web_server" % OAUTH_URL
