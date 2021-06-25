@@ -34,7 +34,10 @@ REFRESH_TOKEN_URL = "%s/authorization/token?type=refresh&refresh_token={0.refres
                     "client_id={0.client_id}&redirect_uri={0.redirect_uri}&client_secret={0.client_secret}" % OAUTH_URL
 """Using a saved refresh token, apply for new access token."""
 
-DEFAULT_CONFIG_FILE = os.path.expanduser(os.path.join("~", ".config", "basecamp.conf"))
+_home_config = os.path.expanduser(os.path.join("~", ".config"))
+# in case the user has a special place for config files:
+_default_config_dir = os.getenv("XDG_CONFIG_HOME", _home_config)
+DEFAULT_CONFIG_FILE = os.path.join(_default_config_dir, "basecamp.conf")
 
 DOCK_NAME_CAMPFIRE = 'chat'
 DOCK_NAME_MESSAGE_BOARD = 'message_board'
