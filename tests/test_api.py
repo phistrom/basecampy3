@@ -118,6 +118,8 @@ class APITest(unittest.TestCase):
         todoitem_name1 = "First I have to do this"
         todoitem_name2 = "Then I do that"
         todoitem_name3 = "but actually I will do this first"
+        todogroup_name1 = "Awesome"
+        todogroup_name2 = "Not awesome"
         project = self.api.projects.create(project_name)
         test_list = project.todoset.create(todolist_name)
 
@@ -130,12 +132,21 @@ class APITest(unittest.TestCase):
         todoitem1 = test_list.create(content=todoitem_name1)
         todoitem2 = test_list.create(content=todoitem_name2)
         todoitem3 = test_list.create(content=todoitem_name3)
-
+        todogroup1 = test_list.create_group(name=todogroup_name1)
+        todogroup2 = test_list.create_group(name=todogroup_name2)
         todoitem3.reposition(1)
+        todogroup1.reposition(5)
+
         items = [todoitem3, todoitem1, todoitem2]  # order in which these items should be now
+
         for counter, todoitem in enumerate(test_list.list()):
             assert todoitem.id == items[counter].id
             assert todoitem.content == items[counter].content
+
+        todogroups = [todogroup2, todogroup1]  # order in which these TodoListGroups should appear
+        for counter, todogroup in enumerate(test_list.list_groups()):
+            assert todogroup.id == todogroups[counter].id
+            assert todogroup.name == todogroups[counter].name
 
         todoitem3.check()
 

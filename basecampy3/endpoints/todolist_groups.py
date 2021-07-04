@@ -1,17 +1,37 @@
-from . import _base, projects, todolists, util
+"""
+To-Do List Groups
+https://github.com/basecamp/bc3-api/blob/master/sections/todolist_groups.md
+
+Subgroups of TodoItems within a TodoList.
+
+The To-Do hierarchy can be confusing.
+
+TodoSet -> TodoLists -> TodoListGroups -> TodoItems
+                             ^
+                        You are here.
+"""
+
+from . import projects, recordings, todolists, util
 
 
-class TodoListGroup(_base.BasecampObject):
-    pass
+class TodoListGroup(todolists.TodoCollection):
+    def reposition(self, position):
+        """
+        Change the position of this TodoItem in the TodoList. 1 will put it at the top of the list.
+
+        :param position: the new position for this TodoItem in the list. Must be greater than or equal to 1.
+        :type position: int
+        """
+        self._endpoint.reposition(position=position, todolist_group=self, project=self.project_id)
 
 
-class TodoListGroups(_base.BasecampEndpoint):
+class TodoListGroups(recordings.RecordingEndpoint):
     OBJECT_CLASS = TodoListGroup
 
     LIST_URL = "{base_url}/buckets/{project_id}/todolists/{todolist_id}/groups.json"
     GET_URL = "{base_url}/buckets/{project_id}/todolists/{todolist_group_id}.json"
     CREATE_URL = "{base_url}/buckets/{project_id}/todolists/{todolist_id}/groups.json"
-    REPOSITION_URL = "{base_url}/buckets/{project_id}/todolists/{todolist_group_id}.json"
+    REPOSITION_URL = "{base_url}/buckets/{project_id}/todolists/groups/{todolist_group_id}/position.json"
 
     def list(self, todolist, project=None, status=None):
         """
@@ -65,18 +85,18 @@ class TodoListGroups(_base.BasecampEndpoint):
         url = self.CREATE_URL.format(base_url=self.url, project_id=project_id, todolist_id=todolist_id)
         return self._create(url, data=data)
 
-    def reposition(self, position, todolist, project=None):
+    def reposition(self, position, todolist_group, project=None):
         """
         Reposition a TodoListGroup in a TodoList.
 
         :param position: the new position as an integer greater than or equal to 1
         :type position: int
-        :param todolist: a TodoList object or ID
-        :type todolist: todolists.TodoList|int
+        :param todolist_group_id: a TodoListGroup object or ID
+        :type todolist_group_id: TodoListGroup|int
         :param project: a Project object or ID
         :type project: projects.Project|int
         """
-        project_id, todolist_id = util.project_or_object(project, todolist)
+        project_id, todolist_group_id = util.project_or_object(project, todolist_group)
         data = {"position": position}
-        url = self.REPOSITION_URL.format(base_url=self.url, project_id=project_id, todolist_id=todolist_id)
-        self._update(url, data=data)
+        url = self.REPOSITION_URL.format(base_url=self.url, project_id=project_id, todolist_group_id=todolist_group_id)
+        self._no_response(url, data=data)

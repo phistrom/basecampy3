@@ -2,8 +2,15 @@
 To-Do Items
 https://github.com/basecamp/bc3-api/blob/master/sections/todos.md
 
-Individual checkboxes on a TodoList object.
+Individual checkboxes in a TodoList or TodoListGroup object.
+
+The To-Do hierarchy can be confusing.
+
+TodoSet -> TodoLists -> TodoListGroups -> TodoItems
+                                             ^
+                                        You are here.
 """
+
 from . import recordings, util
 import six
 
@@ -60,7 +67,7 @@ class Todos(recordings.RecordingEndpoint):
     UNCOMPLETE_URL = "{base_url}/buckets/{project_id}/todos/{todo_id}/completion.json"
     REPOSITION_URL = "{base_url}/buckets/{project_id}/todos/{todo_id}/position.json"
 
-    def list(self, todolist, project=None, status=None, completed=None):
+    def list(self, todolist, project=None, status=None, completed=False):
         """
         Retrieve a list of the TodoItem objects in the given TodoList.
 
@@ -71,7 +78,7 @@ class Todos(recordings.RecordingEndpoint):
         :param status: set this to "archived" or "trashed" for only TodoItems that match that status
         :type status: str
         :param completed: set to True to only get TodoItems that have been completed, by default only incomplete tasks
-                          are listed
+                          are listed. There is no way to return all Todos (complete and incomplete) at the same time.
         :type completed: bool
         :return: a generator of TodoItem objects in the TodoList specified
         :rtype: collections.Iterable[TodoItem]
@@ -80,8 +87,10 @@ class Todos(recordings.RecordingEndpoint):
         params = {}
         if status is not None:
             params['status'] = status
-        if completed is not None:
-            params['completed'] = six.text_type(completed).lower()  # only accepts 'true' and 'false' not True and False
+        if completed is not False:
+            # if completed is 'true' (case-sensitive), will return completed TodoItems
+            # literally any other string (*empty*, 't', 'y', 'false', 'your momma', 'True') returns incomplete tasks
+            params['completed'] = six.text_type(completed).lower()  # convert True to 'true'
         url = self.LIST_URL.format(base_url=self.url, todolist_id=todolist_id, project_id=project_id)
         return self._get_list(url, params=params)
 

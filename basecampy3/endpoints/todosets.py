@@ -4,7 +4,14 @@ https://github.com/basecamp/bc3-api/blob/master/sections/todosets.md
 
 There's one of these per project. All to-do list objects are children of the project's
 To-do Set.
+
+The To-Do hierarchy can be confusing.
+
+TodoSet -> TodoLists -> TodoListGroups -> TodoItems
+   ^
+You are here.
 """
+
 from . import _base, projects, util
 from .. import constants
 

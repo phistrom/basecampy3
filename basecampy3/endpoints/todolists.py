@@ -1,8 +1,46 @@
+"""
+To-Do Lists
+https://github.com/basecamp/bc3-api/blob/master/sections/todolists.md
+
+Lists of TodoItems and TodoListGroups under a TodoSet.
+
+The To-Do hierarchy can be confusing.
+
+TodoSet -> TodoLists -> TodoListGroups -> TodoItems
+              ^
+        You are here.
+"""
+
+import abc
+import six
 from . import recordings, todosets, util
 from .. import constants
 
 
-class TodoList(recordings.Recording):
+@six.add_metaclass(abc.ABCMeta)
+class TodoCollection(recordings.Recording):
+    """
+    Base class for collections of TodoItems like TodoLists and TodoListGroups.
+    """
+
+    def list(self, status=None, completed=False):
+        """
+        Returns an iterable of all Todos directly under this TodoList. Use the TodoList.list_groups function to
+        get TodoListGroups, and then call the list function on those TodoListGroups to get the Todos nested under them.
+
+        :param status: set this to "archived" or "trashed" for only TodoItems that match that status
+        :type status: str
+        :param completed: set to True to only get TodoItems that have been completed, by default only incomplete tasks
+                          are listed. There is no way to return all Todos (complete and incomplete) at the same time.
+        :type completed: bool
+        :return: a generator of TodoItem objects in this TodoList
+        :rtype: collections.abc.Iterable[basecampy3.endpoints.todos.TodoItem]
+        """
+        return self._endpoint._api.todos.list(todolist=self, project=self.project_id,
+                                              status=status, completed=completed)
+
+
+class TodoList(TodoCollection):
     @property
     def todoset_id(self):
         """
@@ -44,19 +82,22 @@ class TodoList(recordings.Recording):
         """
         Create a new TodoListGroup in this TodoList.
 
-        :param name:
+        :param name: the name to give this TodoListGroup
         :type name: str
         :return: the newly created TodoListGroup object
         :rtype: basecampy3.endpoints.todolist_groups.TodoListGroup
         """
         return self._endpoint._api.todolist_groups.create(name=name, todolist=self, project=self.project_id)
 
-
-    def list(self, status=None, completed=None):
-        return self._endpoint._api.todos.list(todolist=self, project=self.project_id,
-                                              status=status, completed=completed)
-
     def list_groups(self, status=None):
+        """
+        List the TodoListGroups under this TodoList. TodoListGroups are a grouping of 0 or more TodoItems with a title.
+
+        :param status: set this to "archived" or "trashed" for only TodoListGroups that match that status
+        :type status: str
+        :return: a generator of TodoListGroup objects in this TodoList
+        :rtype: collections.abc.Iterable[basecampy3.endpoints.todolist_groups.TodoListGroup]
+        """
         return self._endpoint._api.todolist_groups.list(todolist=self, project=self.project_id, status=status)
 
     def __str__(self):
