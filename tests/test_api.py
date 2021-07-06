@@ -6,7 +6,7 @@ import logging
 
 
 class APITest(unittest.TestCase):
-    PROJECT_TEST_NAME_PREFIX = "pytest_%s_" % datetime.now().strftime("%y%m%d%H%M%S")
+    PROJECT_TEST_NAME_PREFIX = "_DELETE_pytest__basecampy3_"
     PROJECT_TEST_DESCRIPTION = "Trash me I am a test project."
 
     def setUp(self):
@@ -14,9 +14,13 @@ class APITest(unittest.TestCase):
 
     def tearDown(self):
         # trash any projects we missed
+        trashed = 0
         for project in self.api.projects.list():
             if project.name.startswith(self.PROJECT_TEST_NAME_PREFIX):
+                logging.info("Sending project '%s' to trash." % project.name)
                 project.trash()
+                trashed += 1
+        logging.info("Test(s) complete. Deleted %s test project(s)." % trashed)
 
     def test_direct_parameters(self):
         conf = config.BasecampFileConfig.from_filepath(constants.DEFAULT_CONFIG_FILE)
@@ -165,3 +169,10 @@ class APITest(unittest.TestCase):
 
         assert todoitem1.status == "trashed"
         logging.info("test_todos complete :)")
+
+    def _create_test_project(self, middle="", suffix=None):
+        if suffix is None:
+            suffix = uuid.uuid4()
+        name = "%s%s%s" % (self.PROJECT_TEST_NAME_PREFIX, middle, suffix)
+        project = self.api.projects.create(name, description=self.PROJECT_TEST_DESCRIPTION)
+        return project
