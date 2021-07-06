@@ -1,7 +1,6 @@
 import unittest
 import uuid
 from basecampy3 import Basecamp3, config, constants
-from datetime import datetime
 import logging
 
 
@@ -21,6 +20,16 @@ class APITest(unittest.TestCase):
                 project.trash()
                 trashed += 1
         logging.info("Test(s) complete. Deleted %s test project(s)." % trashed)
+
+    def test_comments(self):
+        project = self._create_test_project("comments")
+        todolist = project.todoset.create("Test Todo List")
+        comment = todolist.comments.create("Oh hi, just testing.")
+        same = todolist.comments.get(comment.id)
+        assert same.id == comment.id
+        assert same.content == comment.content
+        comment.trash()
+        logging.info("test_comments complete :)")
 
     def test_direct_parameters(self):
         conf = config.BasecampFileConfig.from_filepath(constants.DEFAULT_CONFIG_FILE)

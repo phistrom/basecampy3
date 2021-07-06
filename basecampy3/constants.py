@@ -47,6 +47,8 @@ DOCK_NAME_CHECKIN = 'questionnaire'
 DOCK_NAME_VAULT = 'vault'
 DOCK_NAME_FORWARDS = 'inbox'
 
+DATE_FORMAT = "%a %b %d %Y %H:%M:%S GMT%z"
+
 RATE_LIMIT_REQUESTS = 50
 RATE_LIMIT_PER_SECONDS = 10
 

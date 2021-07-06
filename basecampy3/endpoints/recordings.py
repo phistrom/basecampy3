@@ -1,7 +1,7 @@
-from . import _base, projects, util
+from . import _base, comments
 
 
-class Recording(_base.BasecampObject):
+class Recording(_base.RecordingBase):
     """
     Most of the data structures in the Basecamp 3 API are represented as "Recordings", with generic actions
     available to be performed.
@@ -9,75 +9,20 @@ class Recording(_base.BasecampObject):
     See also:
     https://github.com/basecamp/bc3-api/blob/master/sections/recordings.md
     """
+    def __init__(self, json_dict, endpoint):
+        super(Recording, self).__init__(json_dict, endpoint)
+        self._comments = None
+
     @property
-    def project_id(self):
-        """
-        :return: the ID of the Project this Recording belongs to.
-        :rtype:  int
-        """
-        return int(self._values['bucket']['id'])
-
-    def archive(self):
-        """
-        Archive this Recording.
-        """
-        self._endpoint.archive(project=self.project_id, recording=self)
-
-    def unarchive(self):
-        """
-        Unarchive this Recording.
-        """
-        self._endpoint.unarchive(project=self.project_id, recording=self)
-
-    def trash(self):
-        """
-        Trash this Recording. Trashed items are automatically deleted permanently after 30 days.
-        """
-        self._endpoint.trash(project=self.project_id, recording=self)
+    def comments(self):
+        comment_count = self._values.get("comments_count")
+        if comment_count is None:
+            # ex = "'%s' object has no attribute 'comments'" % type(self).__name__
+            raise AttributeError()
+        if self._comments is None:
+            self._comments = comments.Comments(self._endpoint._api, self)
+        return self._comments
 
 
-class RecordingEndpoint(_base.BasecampEndpoint):
+class RecordingEndpoint(_base.RecordingEndpointBase):
     OBJECT_CLASS = Recording
-
-    ARCHIVE_URL = "{base_url}/buckets/{project_id}/recordings/{recording_id}/status/archived.json"
-    UNARCHIVE_URL = "{base_url}/buckets/{project_id}/recordings/{recording_id}/status/active.json"
-    TRASH_URL = "{base_url}/buckets/{project_id}/recordings/{recording_id}/status/trashed.json"
-
-    def archive(self, project=None, recording=None):
-        """
-        Archive a Recording given its Project and Recording ID.
-
-        :param project: a Project object or ID
-        :type project: basecampy3.endpoints.projects.Project|int
-        :param recording: a Recording object or ID
-        :type recording: Recording|int
-        """
-        project_id, recording_id = util.project_or_object(project, recording)
-        url = self.ARCHIVE_URL.format(base_url=self.url, project_id=project_id, recording_id=recording_id)
-        self._no_response(url, method="PUT")
-
-    def unarchive(self, project=None, recording=None):
-        """
-        Unarchive this Record object.
-
-        :param project: a Project object or ID
-        :type project: basecampy3.endpoints.projects.Project|int
-        :param recording: a Recording object or ID
-        :type recording: Recording|int
-        """
-        project_id, recording_id = util.project_or_object(project, recording)
-        url = self.UNARCHIVE_URL.format(base_url=self.url, project_id=project_id, recording_id=recording_id)
-        self._no_response(url, method="PUT")
-
-    def trash(self, project=None, recording=None):
-        """
-        Trash the given Recording. Trashed items are automatically deleted permanently after 30 days.
-
-        :param project: a Project object or ID
-        :type project: basecampy3.endpoints.projects.Project|int
-        :param recording: a Recording object or ID
-        :type recording: Recording|int
-        """
-        project_id, recording_id = util.project_or_object(project, recording)
-        url = self.TRASH_URL.format(base_url=self.url, project_id=project_id, recording_id=recording_id)
-        self._no_response(url, method="PUT")
