@@ -15,7 +15,7 @@ project_id = 1234567
 
 # Reference:
 # https://github.com/basecamp/bc3-api/blob/master/sections/comments.md#get-comments
-BASE_URL = "https://3.basecampapi.com/{company_id}/".format(company_id=MY_COMPANY_ID)  # base of all API requests
+BASE_URL = "https://3.basecampapi.com/{company_id}".format(company_id=MY_COMPANY_ID)  # base of all API requests
 ENDPOINT = "{base_url}/buckets/{project_id}/recordings/{recording_id}/comments.json"  # get comments endpoint
 url = ENDPOINT.format(base_url=BASE_URL, project_id=project_id, recording_id=recording_id)
 resp = session.get(url)  # make a GET request. Substitute get() with post() or put() or delete() as needed
