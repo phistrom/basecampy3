@@ -51,9 +51,15 @@ class TodoItem(recordings.Recording):
 
     def __str__(self):
         try:
-            return "TodoItem {0.id}: '{0.title}'".format(self)
-        except:
+            return "[{complete}] '{title}'".format(complete="X" if self.completed else " ", title=self.title)
+        except Exception:
             return super(TodoItem, self).__str__()
+
+    def __repr__(self):
+        try:
+            return "TodoItem('{0.title}', completed={0.completed})"
+        except Exception:
+            return super(TodoItem, self).__repr__()
 
 
 class Todos(recordings.RecordingEndpoint):

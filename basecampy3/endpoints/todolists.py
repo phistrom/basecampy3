@@ -102,8 +102,8 @@ class TodoList(TodoCollection):
 
     def __str__(self):
         try:
-            return "TodoList {0.id}: '{0.name}'".format(self)
-        except:
+            return "'{name}'".format(name=self.name)
+        except Exception:
             return super(TodoList, self).__str__()
 
 

@@ -24,6 +24,18 @@ class TodoListGroup(todolists.TodoCollection):
         """
         self._endpoint.reposition(position=position, todolist_group=self, project=self.project_id)
 
+    def __str__(self):
+        try:
+            return "'{}'".format(self.name)
+        except Exception:
+            return super(TodoListGroup, self).__str__()
+
+    def __repr__(self):
+        try:
+            return "TodoListGroup('{}')".format(self.name)
+        except Exception:
+            return super(TodoListGroup, self).__repr__()
+
 
 class TodoListGroups(recordings.RecordingEndpoint):
     OBJECT_CLASS = TodoListGroup
@@ -91,8 +103,8 @@ class TodoListGroups(recordings.RecordingEndpoint):
 
         :param position: the new position as an integer greater than or equal to 1
         :type position: int
-        :param todolist_group_id: a TodoListGroup object or ID
-        :type todolist_group_id: TodoListGroup|int
+        :param todolist_group: a TodoListGroup object or ID
+        :type todolist_group: TodoListGroup|int
         :param project: a Project object or ID
         :type project: projects.Project|int
         """
