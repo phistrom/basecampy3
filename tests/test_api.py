@@ -1,7 +1,12 @@
+import re
 import unittest
 import uuid
 from basecampy3 import Basecamp3, config, constants
 import logging
+
+logger = logging.getLogger("basecampy3")
+logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 class APITest(unittest.TestCase):
@@ -16,10 +21,10 @@ class APITest(unittest.TestCase):
         trashed = 0
         for project in self.api.projects.list():
             if project.name.startswith(self.PROJECT_TEST_NAME_PREFIX):
-                logging.info("Sending project '%s' to trash." % project.name)
+                logger.info("Sending project '%s' to trash." % project.name)
                 project.trash()
                 trashed += 1
-        logging.info("Test(s) complete. Deleted %s test project(s)." % trashed)
+        logger.info("Test(s) complete. Deleted %s test project(s)." % trashed)
 
     def test_comments(self):
         project = self._create_test_project("comments")
@@ -29,7 +34,7 @@ class APITest(unittest.TestCase):
         assert same.id == comment.id
         assert same.content == comment.content
         comment.trash()
-        logging.info("test_comments complete :)")
+        logger.info("test_comments complete :)")
 
     def test_direct_parameters(self):
         conf = config.BasecampFileConfig.from_filepath(constants.DEFAULT_CONFIG_FILE)
@@ -62,31 +67,87 @@ class APITest(unittest.TestCase):
         Create 3 projects with random names, ensure they show up in the list of projects, delete them.
         """
         project_names = {}
+
+        # generate 3 random project names
+        logger.info("Generating random project names:")
         for _ in range(0, 3):
             key = "%s%s" % (self.PROJECT_TEST_NAME_PREFIX, uuid.uuid4())
             project_names[key] = None
+            logger.info("    %s" % key)
 
+        # create the projects
+        logger.info("Creating test projects...")
         for name in project_names:
             new_project = self.api.projects.create(name, description=self.PROJECT_TEST_DESCRIPTION)
             assert new_project.name == name
             assert new_project.description == self.PROJECT_TEST_DESCRIPTION
             project_names[name] = new_project.id
 
-        projects_found = {name: False for name in project_names}
+        # test regular expressions in the find() function
+        logger.info("Testing regular expressions in projects.find()")
+        regex = re.compile(r"%s.+" % self.PROJECT_TEST_NAME_PREFIX)
+        search_results = self.api.projects.find(any_=regex)
+        APITest._project_search_test(project_names, search_results)
 
+        # test strings in the find() function
+        logger.info("Testing strings in projects.find()")
+        term = self.PROJECT_TEST_NAME_PREFIX
+        search_results = self.api.projects.find(any_=term)
+        APITest._project_search_test(project_names, search_results)
+
+        # test if string works for description in the find() function
+        logger.info("Testing strings in projects.find(description=term)")
+        term = self.PROJECT_TEST_DESCRIPTION.split(" ", 1)[0]
+        search_results = self.api.projects.find(description=term)
+        APITest._project_search_test(project_names, search_results)
+
+        try:
+            # test that NO project has this name
+            logger.info("Searching for absurd project title. No matches should be found.")
+            term = "haha I am using the internet! %s" % uuid.uuid4()
+            search_results = self.api.projects.find(name=term)
+            APITest._project_search_test(project_names, search_results)
+        except AssertionError:
+            pass  # in this case an AssertionError is what we want
+        else:
+            # No AssertionError was raised. We were expecting an AssertionError.
+            raise AssertionError("_project_search_test found a project it wasn't supposed to")
+
+        # test the list function, ensure the test projects exist, then trash the test projects
+        logger.info("Testing Project list and trash functions")
+        projects_found = {name: False for name in project_names}
         for project in self.api.projects.list():
             if project.name in project_names and project.id == project_names[project.name]:
                 projects_found[project.name] = True
                 project.trash()
 
+        # there should be no more `False`s in the `projects_found` dict
         for found in projects_found.values():
             assert found
 
+        logger.info("Testing that all our test projects are trashed.")
         for project_id in project_names.values():
             project = self.api.projects.get(project_id)
             assert project.status == "trashed"
 
-        logging.info("test_projects complete :)")
+        logger.info("test_projects complete :)")
+
+    @staticmethod
+    def _project_search_test(project_names, search_results):
+        if not search_results:
+            raise AssertionError("Empty search result set.")
+
+        found_project_names = {proj.name: False for proj in search_results}
+        for name in project_names:
+            if name in found_project_names:
+                logger.info("Found %s" % name)
+                found_project_names[name] = True
+            else:
+                logger.info("%s was not a sought name." % name)
+
+        for project_name, found in found_project_names.items():
+            logger.info("%s was found? %s" % (project_name, found))
+            assert found
 
     def test_campfire(self):
         project_name = "%sCampfire" % self.PROJECT_TEST_NAME_PREFIX
@@ -99,7 +160,7 @@ class APITest(unittest.TestCase):
             assert counter < expected_count
             assert line.content == campfire_test_message
 
-        logging.info("test_campfire complete :)")
+        logger.info("test_campfire complete :)")
 
     def test_message_board(self):
         project_name = "%sMessageBoard" % self.PROJECT_TEST_NAME_PREFIX
@@ -123,7 +184,7 @@ class APITest(unittest.TestCase):
                 assert message.content == ""
                 message.trash()
 
-        logging.info("test_message_board complete :)")
+        logger.info("test_message_board complete :)")
 
     def test_todos(self):
         project_name = "%sTODOs" % self.PROJECT_TEST_NAME_PREFIX
@@ -177,7 +238,7 @@ class APITest(unittest.TestCase):
         todoitem1.refresh()
 
         assert todoitem1.status == "trashed"
-        logging.info("test_todos complete :)")
+        logger.info("test_todos complete :)")
 
     def _create_test_project(self, middle="", suffix=None):
         if suffix is None:

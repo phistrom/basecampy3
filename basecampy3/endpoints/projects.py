@@ -239,12 +239,16 @@ class Projects(_base.BasecampEndpoint):
         if not any((any_, name, description)):
             raise ValueError("Must specify at least one search term.")
         if any_:
+            # for each parameter, we test for the existence of a search attribute to determine
+            # if the parameter is a `re.Pattern` or a string.
             try:
+                _ = any_.search  # assignment makes PyCharm not complain
+                # we must be dealing with a regex
                 name_regex = any_
                 name_str = None
                 desc_regex = any_
                 desc_str = None
-            except AttributeError:
+            except AttributeError:  # search didn't exist, assume string
                 any_upper = any_.upper()
                 name_regex = None
                 name_str = any_upper
@@ -252,15 +256,17 @@ class Projects(_base.BasecampEndpoint):
                 desc_str = any_upper
         else:
             try:
+                _ = name.search
                 name_regex = name
                 name_str = None
-            except AttributeError:
+            except AttributeError:  # search didn't exist
                 name_regex = None
                 name_str = name.upper() if name else None
             try:
+                _ = description.search
                 desc_regex = description
                 desc_str = None
-            except AttributeError:  # hopefully they gave us a string then
+            except AttributeError:  # search didn't exist
                 desc_str = description.upper() if description else None
                 desc_regex = None
 
@@ -293,11 +299,12 @@ class Projects(_base.BasecampEndpoint):
         """
         if not any_ and kwargs.get('any'):
             any_ = kwargs.pop('any')
-        project_description = project.description.upper() if project.description else ""
-        name_str_match = name_str is None or name_str in project.name.upper()
-        name_regex_match = name_regex is None or name_regex.search(project.name)
-        desc_str_match = desc_str is None or desc_str in project_description
-        desc_regex_match = desc_regex is None or desc_regex.search(project.description)
+        project_name = project.name if project.name else ""
+        project_description = project.description if project.description else ""
+        name_str_match = name_str is None or name_str in project_name.upper()
+        name_regex_match = name_regex is None or name_regex.search(project_name)
+        desc_str_match = desc_str is None or desc_str in project_description.upper()
+        desc_regex_match = desc_regex is None or desc_regex.search(project_description)
         name_matched = name_str_match and name_regex_match
         desc_matched = desc_str_match and desc_regex_match
         if any_:
