@@ -106,7 +106,7 @@ class Project(_base.BasecampObject):
         A list of answers for question with id
 
         :param question: the id of question to list answers from
-        :type name: int
+        :type question: int
         :return: a list of Answer objects
         :rtype: collections.Iterable[basecampy3.endpoints.answers.Answer]
         """
@@ -120,7 +120,7 @@ class Project(_base.BasecampObject):
     def __str__(self):
         try:
             return u"Project {0.id}: '{0.name}'".format(self)
-        except:
+        except AttributeError:
             return super(Project, self).__str__()
 
     def __repr__(self):
