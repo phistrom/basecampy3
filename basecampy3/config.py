@@ -2,16 +2,11 @@
 BasecampConfig and some built-in subclasses of it.
 """
 
-try:
-    # Python 2
-    from ConfigParser import SafeConfigParser as ConfigParser, NoSectionError, NoOptionError
-except ImportError:
-    # Python 3
-    from configparser import ConfigParser, NoSectionError, NoOptionError
 
 import abc
 import os
 import six
+from six.moves.configparser import SafeConfigParser as ConfigParser, NoSectionError, NoOptionError
 
 from . import constants, exc
 from .log import logger
@@ -30,10 +25,12 @@ class BasecampConfig(object):
         "redirect_uri",
         "access_token",
         "refresh_token",
+        "account_id",
     ]
     """Fields that are expected to be persisted by the save function."""
 
-    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None):
+    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
+                 account_id=None):
         """
         :param client_id: the Client ID for the Basecamp 3 integration to use
         :type client_id: str
@@ -46,12 +43,15 @@ class BasecampConfig(object):
         :param refresh_token: a refresh_token obtained with the initial access_token.
                               Use it to obtain a new access_token
         :type refresh_token: str
+        :param account_id: the selected account ID to use with Basecamp 3
+        :type account_id: int
         """
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.access_token = access_token
         self.refresh_token = refresh_token
+        self.account_id = account_id
 
     @property
     def is_usable(self):
@@ -113,7 +113,7 @@ class BasecampFileConfig(BasecampConfig):
     """A list of places to look for a configuration file if you do not specify one to the Basecamp3 object."""
 
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
-                 filepath=None):
+                 account_id=None, filepath=None):
         """
         Create a new BasecampConfig with the given values already set. Bare in mind that the fields for this object
         remain unchanged until you actually call the read() function. This is in case the file doesn't exist yet and
@@ -124,7 +124,7 @@ class BasecampFileConfig(BasecampConfig):
         """
         super(BasecampFileConfig, self).__init__(client_id=client_id, client_secret=client_secret,
                                                  redirect_uri=redirect_uri, access_token=access_token,
-                                                 refresh_token=refresh_token)
+                                                 refresh_token=refresh_token, account_id=account_id)
         self.filepath = filepath
 
     def read(self, filepath=None):
@@ -210,6 +210,9 @@ class BasecampFileConfig(BasecampConfig):
         :rtype basecampy3.config.BasecampFileConfig
         :raises basecampy3.exc.NoDefaultConfigurationFound: if none of the files in the list exist
         """
+        env_defined = os.getenv("BC3_CONFIG_PATH")
+        if env_defined:
+            cls.DEFAULT_CONFIG_FILE_LOCATIONS.insert(0, env_defined)
         for config_file in cls.DEFAULT_CONFIG_FILE_LOCATIONS:
             try:
                 return cls.from_filepath(config_file)

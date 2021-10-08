@@ -1,6 +1,7 @@
 """
 The Basecamp3 class should be the only thing you need to import to access just about all the functionality you need.
 """
+import logging
 import os
 from datetime import datetime
 import dateutil.parser
@@ -23,6 +24,9 @@ from .endpoints import todolists
 from .endpoints import todolist_groups
 from .endpoints import todos
 from .endpoints import todosets
+
+
+logger = logging.getLogger(__name__)
 
 
 def _create_session():
@@ -97,7 +101,6 @@ class Basecamp3(object):
         self._conf = conf
         self._session = _create_session()
         self._session.mount("https://", adapter=Basecamp3TransportAdapter())
-        self.account_id = None
         self._authorize()
         self.answers = answers.Answers(self)
         self.campfires = campfires.Campfires(self)
@@ -143,6 +146,13 @@ class Basecamp3(object):
         """
         data = self._get_data(constants.AUTHORIZATION_JSON_URL, False)
         return data.json()
+
+    @property
+    def accounts(self):
+        identity = self.who_am_i
+        for acct in identity['accounts']:
+            if acct['product'] == 'bc3':
+                yield acct
 
     @classmethod
     def trade_user_code_for_access_token(cls, client_id, redirect_uri, client_secret, code, session=None):
@@ -239,12 +249,23 @@ class Basecamp3(object):
         Get the account ID for this user. Returns the first account ID found where the product field is "bc3".
         :return: str
         """
-        # TODO user can belong to multiple accounts. Force user to pick one during bc3 configure phase and save to conf
+
+        if self._conf.account_id:
+            return self._conf.account_id
+
         identity = self.who_am_i
-        for acct in identity['accounts']:
-            if acct['product'] == 'bc3':
-                return acct['id']
-        raise exc.UnknownAccountIDError("Could not determine this Basecamp account's ID")
+        accounts = [acct for acct in identity['accounts'] if acct['product'] == 'bc3']
+        if len(accounts) == 1:
+            return accounts[0]['id']
+        elif len(accounts) < 1:
+            raise exc.UnknownAccountIDError("You do not belong to any Basecamp 3 accounts.")
+        else:
+            account = accounts[0]
+            logger.warning("You belong to more than one Basecamp3 account and you do not have an account_id \n"
+                           "specified in your configuration. Please run `bc3 configure` again to avoid this warning. \n"
+                           "Proceeding with legacy behavior of picking the first account which is %s (ID = %s)..." %
+                           (account['name'], account['id']))
+            return account['id']
 
     def _is_token_expired(self):
         """
