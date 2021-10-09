@@ -110,3 +110,68 @@ class RecordingEndpointURLs(EndpointURLs):
         """
         return self._get("/buckets/{project}/recordings/{record}/events.json",
                          project=project, record=record)
+
+    def list_subscriptions(self, project, record):
+        """
+        List the subscribers of a given Recording. Subscribers are People who
+        are notified when a Recording is updated.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/subscriptions.md#get-subscription
+
+        :param project: the ID of a Project
+        :type project: int
+        :param record: the ID of a Recording
+        :type record: int
+        :return: the URL for getting the list of People subscribed to a Recording
+        :rtype:
+        """
+        return self._get("/buckets/{project}/recordings/{record}/subscription.json",
+                         project=project, record=record)
+
+    def subscribe_myself(self, project, record):
+        """
+        Subscribe the current user to the given Recording.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/subscriptions.md#subscribe-current-user
+
+        :param project: the ID of a Project
+        :type project: int
+        :param record: the ID of a Recording
+        :type record: int
+        :return: the URL for subscribing the current user to the desired Recording
+        :rtype: basecampy3.urls.URL
+        """
+        return self._post("/buckets/{project}/recordings/{record}/subscription.json",
+                          project=project, record=record)
+
+    def unsubscribe_myself(self, project, record):
+        """
+        Unsubscribe the current user from the given Recording.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/subscriptions.md#unsubscribe-current-user
+
+        :param project: the ID of a Project
+        :type project: int
+        :param record: the ID of a Recording
+        :type record: int
+        :return: the URL for unsubscribing the current user from the desired Recording
+        :rtype: basecampy3.urls.URL
+        """
+        return self._delete("/buckets/{project}/recordings/{record}/subscription.json",
+                            project=project, record=record)
+
+    def update_subscriptions(self, project, record):
+        """
+        Add/remove subscribers to a Recording.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/subscriptions.md#update-subscription
+
+        :param project: the ID of a Project
+        :type project: int
+        :param record: the ID of a Recording
+        :type record: int
+        :return: the URL for modifying the subscriber list of the desired Recording
+        :rtype: basecampy3.urls.URL
+        """
+        return self._put("/buckets/{project}/recordings/{record}/subscription.json",
+                         project=project, record=record)

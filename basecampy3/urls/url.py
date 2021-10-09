@@ -21,7 +21,7 @@ class URL(object):
     @params.setter
     def params(self, value):
         if value is None:
-            self._params = {}
+            value = {}
         self._params = util.filter_unused(value)
 
     def request(self, session=None, params=None, **kwargs):

@@ -7,6 +7,9 @@ from .recordings import RecordingEndpointURLs
 
 class Forwards(RecordingEndpointURLs):
     """
+    Email Forwards.
+
+    https://3.basecamp-help.com/article/58-forwards
     https://github.com/basecamp/bc3-api/blob/master/sections/forwards.md
     """
 

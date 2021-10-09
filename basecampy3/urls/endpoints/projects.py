@@ -90,3 +90,33 @@ class Projects(EndpointURLs):
         :rtype: basecampy3.urls.URL
         """
         return self._put("/projects/{project}/people/users.json", project=project)
+
+    def create_from_template(self, template):
+        """
+        Create a Project from a Template.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/templates.md#create-a-project-construction
+
+        :param template: the ID of a Template
+        :type template: int
+        :return: the URL for creating a Project from the desired Template
+        :rtype: basecampy3.urls.URL
+        """
+        return self._post("/templates/{template}/project_constructions.json", template=template)
+
+    def get_construction_status(self, template, project_construction):
+        """
+        Projects created from a Template are created asynchronously. Use this
+        endpoint to see if a Project has finished being created.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/templates.md#get-a-project-construction
+
+        :param template: the ID of a Template
+        :type template: int
+        :param project_construction: the ID of a Project Construction
+        :type project_construction: int
+        :return: the URL for checking the desired Project Construction's status
+        :rtype: basecampy3.urls.URL
+        """
+        return self._get("/templates/{template}/project_constructions/{project_construction}.json",
+                         template=template, project_construction=project_construction)
