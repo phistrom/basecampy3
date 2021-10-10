@@ -53,7 +53,8 @@ class Chatbots(EndpointURLs):
         :return: the URL for creating new Chatbots in the desired Campfire
         :rtype: basecampy3.urls.URL
         """
-        return self._post("/buckets/{project}/chats/{campfire}/integrations.json")
+        return self._post("/buckets/{project}/chats/{campfire}/integrations.json",
+                          project=project, campfire=campfire)
 
     def update(self, project, campfire, chatbot):
         """
