@@ -1,6 +1,6 @@
 from codecs import open
 import os
-from setuptools import setup
+from setuptools import find_packages, setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,11 +14,7 @@ with open(os.path.join(here, 'basecampy3', '__version__.py'), 'r', encoding='utf
 setup(
     name='basecampy3',
     version=about['__version__'],
-    packages=[
-        'basecampy3',
-        'basecampy3.endpoints',
-        'basecampy3.cache',
-    ],
+    packages=find_packages(),
     install_requires=[
         "python-dateutil",
         "pytz",
