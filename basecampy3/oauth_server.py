@@ -4,13 +4,9 @@ module subclasses the basic built-in Python 3 HTTP server to listen on port 3333
 running `bc3 configure`, this module listens for the code sent in the redirect, and can return it to the CLI so the CLI
 can perform the final step of requesting access and refresh tokens from Basecamp 3 and storing them for later use.
 """
-try:
-    from urllib.parse import parse_qs, urlparse
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-except ImportError:
-    from urlparse import parse_qs, urlparse
-    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import six
+from six.moves.urllib_parse import parse_qs, urlparse
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 
 class OAuthRequestHandler(BaseHTTPRequestHandler):
