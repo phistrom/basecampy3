@@ -9,7 +9,7 @@ import pytz
 import requests
 from .transport_adapter import Basecamp3TransportAdapter
 
-from . import config, constants, exc
+from . import config, constants, exc, urls
 from .endpoints import answers
 from .endpoints import campfires
 from .endpoints import campfire_lines
@@ -37,7 +37,7 @@ def _create_session():
 
 class Basecamp3(object):
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
-                 conf=None):
+                 conf=None, api_url=constants.API_URL):
         """
         Create a new Basecamp 3 API connection. The following combinations of parameters are valid:
 
@@ -102,6 +102,7 @@ class Basecamp3(object):
         self._session = _create_session()
         self._session.mount("https://", adapter=Basecamp3TransportAdapter())
         self._authorize()
+        self.urls = urls.BasecampURLs(self.account_id, api_url)
         self.answers = answers.Answers(self)
         self.campfires = campfires.Campfires(self)
         self.campfire_lines = campfire_lines.CampfireLines(self)
