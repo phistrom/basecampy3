@@ -1,4 +1,4 @@
-from typing import ClassVar, Iterable, Literal, Optional, TypedDict, Union
+from typing import ClassVar, Iterable, Literal, Optional, Type, TypedDict, Union
 
 from . import _base, recordings
 from ..bc3_api import Basecamp3
@@ -60,7 +60,7 @@ class Comment(_base.RecordingBase):
 
 
 class Comments(_base.RecordingEndpointBase):
-    OBJECT_CLASS = Comment
+    OBJECT_CLASS: ClassVar[Type[Comment]]
 
     LIST_URL: ClassVar[str]
     GET_URL: ClassVar[str]

@@ -53,12 +53,12 @@ class Project(_base.BasecampObject):
 class Projects(_base.BasecampEndpoint):
     OBJECT_CLASS: ClassVar[Type[Project]]
 
-    CREATE_URL: str
-    GET_URL: str
-    LIST_URL: str
-    MODIFY_ACCESS_URL: str
-    TRASH_URL: str
-    UPDATE_URL: str
+    CREATE_URL: ClassVar[str]
+    GET_URL: ClassVar[str]
+    LIST_URL: ClassVar[str]
+    MODIFY_ACCESS_URL: ClassVar[str]
+    TRASH_URL: ClassVar[str]
+    UPDATE_URL: ClassVar[str]
 
     CREATION_FROM_TEMPLATE_TIMEOUT: int
 
