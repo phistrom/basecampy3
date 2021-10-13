@@ -7,7 +7,7 @@ import logging
 import os
 import traceback
 
-from basecampy3 import Basecamp3
+from basecampy3 import Basecamp3, exc
 from basecampy3.bc3_api import _create_session
 from basecampy3.token_requestor import TokenRequester
 from basecampy3 import config, constants
@@ -88,6 +88,31 @@ class CLI(object):
         print("Success! Your tokens are listed below.")
         print("Access Token: %s" % tokens['access_token'])
         print("Refresh Token: %s" % tokens['refresh_token'])
+        bc3api = Basecamp3(access_token=tokens['access_token'])
+        identity = bc3api.who_am_i["identity"]
+        accounts = [acct for acct in bc3api.accounts]
+        if len(accounts) < 1:
+            print("Error: You don't seem to have any Basecamp accounts")
+            raise exc.UnknownAccountIDError()
+        elif len(accounts) == 1:
+            account_id = accounts[0]["id"]
+        else:
+            while True:
+                print("User ID %s, email %s has %s accounts. Which one do you want to use?" %
+                      (identity["id"], identity["email_address"], len(accounts)))
+                for idx, acct in enumerate(accounts, start=1):
+                    print("%s) %s (ID = %s)" % (idx, acct["name"], acct["id"]))
+                choice = input("Which of the above accounts do you want to use? ")
+                try:
+                    choice = abs(int(choice))
+                    acct = accounts[choice - 1]
+                    account_id = acct["id"]
+                    print("Selected %(name)s (ID = %(id)s)" % acct)
+                    break
+                except (IndexError, TypeError, ValueError):
+                    print("%s is not a valid choice. Please provide a number between 1 and %s" %
+                          (choice, len(accounts)))
+
         while True:
             should_save = input("Do you want to save? (Y/N)").upper().strip()
             if should_save in ("Y", "YES"):
@@ -110,7 +135,7 @@ class CLI(object):
             try:
                 conf = config.BasecampFileConfig(client_id=client_id, client_secret=client_secret,
                                                  redirect_uri=redirect_uri, access_token=tokens['access_token'],
-                                                 refresh_token=tokens['refresh_token'])
+                                                 refresh_token=tokens['refresh_token'], account_id=account_id)
                 conf.save(location)
                 break
             except Exception:

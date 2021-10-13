@@ -1,6 +1,7 @@
 """
 The Basecamp3 class should be the only thing you need to import to access just about all the functionality you need.
 """
+import logging
 import os
 from datetime import datetime
 import dateutil.parser
@@ -8,21 +9,9 @@ import pytz
 import requests
 from .transport_adapter import Basecamp3TransportAdapter
 
-from . import config, constants, exc
-from .endpoints import answers
-from .endpoints import campfires
-from .endpoints import campfire_lines
-from .endpoints import messages
-from .endpoints import message_boards
-from .endpoints import message_categories
-from .endpoints import people
-from .endpoints import projects
-from .endpoints import project_constructions
-from .endpoints import templates
-from .endpoints import todolists
-from .endpoints import todolist_groups
-from .endpoints import todos
-from .endpoints import todosets
+from . import config, constants, endpoints, exc, urls
+
+logger = logging.getLogger(__name__)
 
 
 def _create_session():
@@ -33,7 +22,7 @@ def _create_session():
 
 class Basecamp3(object):
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
-                 conf=None):
+                 account_id=None, conf=None, api_url=constants.API_URL):
         """
         Create a new Basecamp 3 API connection. The following combinations of parameters are valid:
 
@@ -72,6 +61,8 @@ class Basecamp3(object):
         :type access_token: str
         :param refresh_token: a refresh token obtained from a user, used for obtaining a new access_token
         :type refresh_token: str
+        :param account_id: the account ID to use (used if the user belongs to multiple Basecamp 3 accounts)
+        :type account_id: str|int
         :param conf: a BasecampConfig object with all the settings we need so that we don't have to fill out all
                          these parameters
         :type conf: basecampy3.config.BasecampConfig
@@ -83,7 +74,7 @@ class Basecamp3(object):
         if has_direct_values:  # user provided fields in constructor
             conf = config.BasecampMemoryConfig(client_id=client_id, client_secret=client_secret,
                                                redirect_uri=redirect_uri, access_token=access_token,
-                                               refresh_token=refresh_token)
+                                               refresh_token=refresh_token, account_id=account_id)
             if not conf.is_usable:  # user didn't provide enough fields in constructor
                 raise ValueError("Unable to use the Basecamp 3 API. Not enough information provided.")
         elif conf is None:  # user provided no fields at all, look for a saved config file (the preferred way to run)
@@ -95,24 +86,26 @@ class Basecamp3(object):
             raise ValueError("Unable to find a suitable Basecamp 3 configuration. Try running `bc3 configure`.")
 
         self._conf = conf
-        self._session = _create_session()
-        self._session.mount("https://", adapter=Basecamp3TransportAdapter())
-        self.account_id = None
+        session = _create_session()
+        session.mount("https://", adapter=Basecamp3TransportAdapter())
+        self.session = self._session = session
         self._authorize()
-        self.answers = answers.Answers(self)
-        self.campfires = campfires.Campfires(self)
-        self.campfire_lines = campfire_lines.CampfireLines(self)
-        self.messages = messages.Messages(self)
-        self.message_boards = message_boards.MessageBoards(self)
-        self.message_categories = message_categories.MessageCategories(self)
-        self.people = people.People(self)
-        self.projects = projects.Projects(self)
-        self.project_constructions = project_constructions.ProjectConstructions(self)
-        self.templates = templates.Templates(self)
-        self.todolists = todolists.TodoLists(self)
-        self.todolist_groups = todolist_groups.TodoListGroups(self)
-        self.todos = todos.Todos(self)
-        self.todosets = todosets.TodoSets(self)
+        self.urls = urls.BasecampURLs(self.account_id, api_url)
+
+        self.answers = endpoints.Answers(self)
+        self.campfires = endpoints.Campfires(self)
+        self.campfire_lines = endpoints.CampfireLines(self)
+        self.messages = endpoints.Messages(self)
+        self.message_boards = endpoints.MessageBoards(self)
+        self.message_categories = endpoints.MessageCategories(self)
+        self.people = endpoints.People(self)
+        self.projects = endpoints.Projects(self)
+        self.project_constructions = endpoints.ProjectConstructions(self)
+        self.templates = endpoints.Templates(self)
+        self.todolists = endpoints.TodoLists(self)
+        self.todolist_groups = endpoints.TodoListGroups(self)
+        self.todos = endpoints.Todos(self)
+        self.todosets = endpoints.TodoSets(self)
 
     @classmethod
     def from_environment(cls):
@@ -143,6 +136,13 @@ class Basecamp3(object):
         """
         data = self._get_data(constants.AUTHORIZATION_JSON_URL, False)
         return data.json()
+
+    @property
+    def accounts(self):
+        identity = self.who_am_i
+        for acct in identity['accounts']:
+            if acct['product'] == 'bc3':
+                yield acct
 
     @classmethod
     def trade_user_code_for_access_token(cls, client_id, redirect_uri, client_secret, code, session=None):
@@ -239,12 +239,23 @@ class Basecamp3(object):
         Get the account ID for this user. Returns the first account ID found where the product field is "bc3".
         :return: str
         """
-        # TODO user can belong to multiple accounts. Force user to pick one during bc3 configure phase and save to conf
+
+        if self._conf.account_id:
+            return self._conf.account_id
+
         identity = self.who_am_i
-        for acct in identity['accounts']:
-            if acct['product'] == 'bc3':
-                return acct['id']
-        raise exc.UnknownAccountIDError("Could not determine this Basecamp account's ID")
+        accounts = [acct for acct in identity['accounts'] if acct['product'] == 'bc3']
+        if len(accounts) == 1:
+            return accounts[0]['id']
+        elif len(accounts) < 1:
+            raise exc.UnknownAccountIDError("You do not belong to any Basecamp 3 accounts.")
+        else:
+            account = accounts[0]
+            logger.warning("You belong to more than one Basecamp3 account and you do not have an account_id \n"
+                           "specified in your configuration. Please run `bc3 configure` again to avoid this warning. \n"
+                           "Proceeding with legacy behavior of picking the first account which is %s (ID = %s)..." %
+                           (account['name'], account['id']))
+            return account['id']
 
     def _is_token_expired(self):
         """

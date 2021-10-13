@@ -61,7 +61,6 @@ class Basecamp3TransportAdapter(adapters.HTTPAdapter):
         :param response: the HTTP response to cache
         :type response: requests.Response
         """
-        url = response.request.url
         self._cache.set_cached(response)
 
     def _set_cache_headers(self, request):

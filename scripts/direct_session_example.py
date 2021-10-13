@@ -6,7 +6,7 @@ from basecampy3 import Basecamp3
 import json
 
 bc3 = Basecamp3()
-session = bc3._session
+session = bc3.session
 
 # replace these with actual IDs of the Basecamp objects you wish to get
 MY_COMPANY_ID = 1234567

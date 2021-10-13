@@ -4,10 +4,7 @@ from .. import constants
 import abc
 import re
 import six
-try:
-    from urlparse import urljoin
-except ImportError:
-    from urllib.parse import urljoin
+from six.moves.urllib_parse import urljoin
 
 
 class BasecampObject(object):
@@ -47,6 +44,11 @@ class BasecampObject(object):
             # ex = "'{type}' object has no attribute '{item}'".format(type=self.__class__.__name__, item=item)
             ex = "'{type}' object has no attribute '{item}'".format(type='BasecampObject', item=item)
             raise AttributeError(ex)
+
+    def __dir__(self):
+        parent_dict = [a for a in super(BasecampObject, self).__dir__()]
+        parent_dict.extend(self._values.keys())
+        return parent_dict
 
     def __int__(self):
         return int(self.id)
