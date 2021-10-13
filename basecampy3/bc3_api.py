@@ -9,22 +9,7 @@ import pytz
 import requests
 from .transport_adapter import Basecamp3TransportAdapter
 
-from . import config, constants, exc, urls
-from .endpoints import answers
-from .endpoints import campfires
-from .endpoints import campfire_lines
-from .endpoints import messages
-from .endpoints import message_boards
-from .endpoints import message_categories
-from .endpoints import people
-from .endpoints import projects
-from .endpoints import project_constructions
-from .endpoints import templates
-from .endpoints import todolists
-from .endpoints import todolist_groups
-from .endpoints import todos
-from .endpoints import todosets
-
+from . import config, constants, endpoints, exc, urls
 
 logger = logging.getLogger(__name__)
 
@@ -105,20 +90,21 @@ class Basecamp3(object):
         self._session.mount("https://", adapter=Basecamp3TransportAdapter())
         self._authorize()
         self.urls = urls.BasecampURLs(self.account_id, api_url)
-        self.answers = answers.Answers(self)
-        self.campfires = campfires.Campfires(self)
-        self.campfire_lines = campfire_lines.CampfireLines(self)
-        self.messages = messages.Messages(self)
-        self.message_boards = message_boards.MessageBoards(self)
-        self.message_categories = message_categories.MessageCategories(self)
-        self.people = people.People(self)
-        self.projects = projects.Projects(self)
-        self.project_constructions = project_constructions.ProjectConstructions(self)
-        self.templates = templates.Templates(self)
-        self.todolists = todolists.TodoLists(self)
-        self.todolist_groups = todolist_groups.TodoListGroups(self)
-        self.todos = todos.Todos(self)
-        self.todosets = todosets.TodoSets(self)
+
+        self.answers = endpoints.Answers(self)
+        self.campfires = endpoints.Campfires(self)
+        self.campfire_lines = endpoints.CampfireLines(self)
+        self.messages = endpoints.Messages(self)
+        self.message_boards = endpoints.MessageBoards(self)
+        self.message_categories = endpoints.MessageCategories(self)
+        self.people = endpoints.People(self)
+        self.projects = endpoints.Projects(self)
+        self.project_constructions = endpoints.ProjectConstructions(self)
+        self.templates = endpoints.Templates(self)
+        self.todolists = endpoints.TodoLists(self)
+        self.todolist_groups = endpoints.TodoListGroups(self)
+        self.todos = endpoints.Todos(self)
+        self.todosets = endpoints.TodoSets(self)
 
     @classmethod
     def from_environment(cls):
