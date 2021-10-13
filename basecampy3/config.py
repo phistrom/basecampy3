@@ -6,7 +6,7 @@ BasecampConfig and some built-in subclasses of it.
 import abc
 import os
 import six
-from six.moves.configparser import SafeConfigParser as ConfigParser, NoSectionError, NoOptionError
+from six.moves.configparser import ConfigParser, NoSectionError, NoOptionError
 
 from . import constants, exc
 from .log import logger
