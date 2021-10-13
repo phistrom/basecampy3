@@ -86,8 +86,9 @@ class Basecamp3(object):
             raise ValueError("Unable to find a suitable Basecamp 3 configuration. Try running `bc3 configure`.")
 
         self._conf = conf
-        self._session = _create_session()
-        self._session.mount("https://", adapter=Basecamp3TransportAdapter())
+        session = _create_session()
+        session.mount("https://", adapter=Basecamp3TransportAdapter())
+        self.session = self._session = session
         self._authorize()
         self.urls = urls.BasecampURLs(self.account_id, api_url)
 
