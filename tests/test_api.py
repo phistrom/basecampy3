@@ -246,3 +246,7 @@ class APITest(unittest.TestCase):
         name = "%s%s%s" % (self.PROJECT_TEST_NAME_PREFIX, middle, suffix)
         project = self.api.projects.create(name, description=self.PROJECT_TEST_DESCRIPTION)
         return project
+
+
+if __name__ == "__main__":
+    unittest.main()
