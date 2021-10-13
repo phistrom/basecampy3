@@ -37,7 +37,7 @@ def _create_session():
 
 class Basecamp3(object):
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
-                 conf=None, api_url=constants.API_URL):
+                 account_id=None, conf=None, api_url=constants.API_URL):
         """
         Create a new Basecamp 3 API connection. The following combinations of parameters are valid:
 
@@ -76,6 +76,8 @@ class Basecamp3(object):
         :type access_token: str
         :param refresh_token: a refresh token obtained from a user, used for obtaining a new access_token
         :type refresh_token: str
+        :param account_id: the account ID to use (used if the user belongs to multiple Basecamp 3 accounts)
+        :type account_id: str|int
         :param conf: a BasecampConfig object with all the settings we need so that we don't have to fill out all
                          these parameters
         :type conf: basecampy3.config.BasecampConfig
@@ -87,7 +89,7 @@ class Basecamp3(object):
         if has_direct_values:  # user provided fields in constructor
             conf = config.BasecampMemoryConfig(client_id=client_id, client_secret=client_secret,
                                                redirect_uri=redirect_uri, access_token=access_token,
-                                               refresh_token=refresh_token)
+                                               refresh_token=refresh_token, account_id=account_id)
             if not conf.is_usable:  # user didn't provide enough fields in constructor
                 raise ValueError("Unable to use the Basecamp 3 API. Not enough information provided.")
         elif conf is None:  # user provided no fields at all, look for a saved config file (the preferred way to run)
