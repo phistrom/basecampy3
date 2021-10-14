@@ -31,7 +31,7 @@ ACCESS_TOKEN_URL = "%s/authorization/token?type=web_server&client_id={client_id}
 """Using the code received during initial authentication, obtain access and refresh tokens."""
 
 REFRESH_TOKEN_URL = "%s/authorization/token?type=refresh&refresh_token={0.refresh_token}&" \
-                    "client_id={0.client_id}&redirect_uri={0.redirect_uri}&client_secret={0.client_secret}" % OAUTH_URL
+                    "client_id={0.client_id}&client_secret={0.client_secret}" % OAUTH_URL
 """Using a saved refresh token, apply for new access token."""
 
 _user_default_config_dir = os.getenv("BC3_CONFIG_PATH")
