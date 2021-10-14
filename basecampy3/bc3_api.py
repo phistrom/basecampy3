@@ -2,7 +2,6 @@
 The Basecamp3 class should be the only thing you need to import to access just about all the functionality you need.
 """
 import logging
-import os
 from datetime import datetime
 import dateutil.parser
 import pytz
@@ -21,35 +20,41 @@ def _create_session():
 
 
 class Basecamp3(object):
-    def __init__(self, client_id=None, client_secret=None, redirect_uri=None, access_token=None, refresh_token=None,
-                 account_id=None, conf=None, api_url=constants.API_URL):
+    def __init__(self, client_id=None, client_secret=None, redirect_uri=None,
+                 access_token=None, refresh_token=None, account_id=None,
+                 conf=None, config_file=None, api_url=constants.API_URL):
         """
-        Create a new Basecamp 3 API connection. The following combinations of parameters are valid:
+        Create a new Basecamp 3 API connection. The preferred method of using
+        this API is to run `bc3 configure` from the command line first, then
+        you do not need to pass any parameters into this constructor.
 
-        1. `access_token` only
-            Can access the API for now, but when this `access_token` expires you'll have to provide a new one. Not
-            ideal for automation.
-        2. `refresh_token`
-            With `client_id`, `client_secret`, `redirect_uri`, and a `refresh_token`, we can obtain and refresh our
-            own `access_token`. `refresh_token`s don't seem to have a limit so this is ideal for automation.
-        3. `conf`
-            Specify a BasecampConfig object instead of all the other parameters. This is the preferred method because
-            then BasecamPY3 can potentially save new access tokens acquired by the refresh token to whatever
-            persistence method backs the BasecampConfig.
+        Parameters are prioritized in this order:
 
-        It is an error to specify conf with any other parameter.
+        default file path < environment variables < provided filepath < provided config object < provided parameters
+        1. Default file path: Without a configuration object (`conf`)
+           or `config_file`, BasecamPY3 looks for configuration files in
+           the default places. See the `config` module for details.
+        2. Environment variables: override or supplement the values found in
+           the default file locations.
+        3. If `config_file` is specified, environment variables will be
+           overriden or supplemented with the contents of this file.
+           This location will be used to persist `access_token`s.
+        4. If `conf` is provided, the previous configurations will be
+           supplemented or overriden with values from this object.
+           If `conf` is non-volatile storage (i.e. a file configuration
+           object), this object will be used to persist `access_token`s.
+        5. If parameters are provided (like `client_id`, `client_secret`,
+           etc.), they override or supplement all previous configurations.
+
+        Essentially, stick to one method of providing parameters for the
+        most straightforward experience.
+
+        Non-volatile storage is the most ideal so BasecamPY3 has somewhere to
+        put `access_token`s it obtains by using `refresh_token`s.
+        `access_token`s currently last 2 weeks.
 
         `client_id`, `client_secret`, and `redirect_uri` can be obtained by creating a new app here:
             https://launchpad.37signals.com/integrations
-
-        `redirect_uri` doesn't have to be a real URL, but it does have to match what you put when you registered your
-        app at the site above.
-
-        `access_token` and `refresh_token` are normally obtained when a user clicks your app integration page and
-        presses the big green "Yes, I'll allow access" button, which redirects them to your `redirect_uri` with a
-        authorization code attached to it. Your app then uses its client_secret and client_id to obtain the tokens with
-        this authorization code. Use `bc3 configure` from the command line to be guided through obtaining access and
-        refresh tokens on behalf of your integration.
 
         :param client_id: your app's client_id is given to you when you create a new app
         :type client_id: str
@@ -63,29 +68,53 @@ class Basecamp3(object):
         :type refresh_token: str
         :param account_id: the account ID to use (used if the user belongs to multiple Basecamp 3 accounts)
         :type account_id: str|int
-        :param conf: a BasecampConfig object with all the settings we need so that we don't have to fill out all
-                         these parameters
+        :param conf: a BasecampConfig object
         :type conf: basecampy3.config.BasecampConfig
+        :param config_file: path to a configuration file to use for this object
+        :type config_file: str
+        :param api_url: base URL to use for all API calls
+        :type api_url: str
         """
-        has_direct_values = client_id or client_secret or redirect_uri or access_token or refresh_token
-        if conf and has_direct_values:
-            raise ValueError("You cannot specify a BasecampConfig object as well as direct values such as client_id or "
-                             "redirect_uri")
-        if has_direct_values:  # user provided fields in constructor
-            conf = config.BasecampMemoryConfig(client_id=client_id, client_secret=client_secret,
-                                               redirect_uri=redirect_uri, access_token=access_token,
-                                               refresh_token=refresh_token, account_id=account_id)
-            if not conf.is_usable:  # user didn't provide enough fields in constructor
-                raise ValueError("Unable to use the Basecamp 3 API. Not enough information provided.")
-        elif conf is None:  # user provided no fields at all, look for a saved config file (the preferred way to run)
-            conf = config.BasecampFileConfig.load_from_default_paths()
 
-        # if the user didn't provide a config or the config we found on disk is unusable, we have to quit
-        if conf is None or not conf.is_usable:
-            # pretty sure this is impossible. load_from_default_paths() raises an Exception if no config is found
+        # config precedence (leftmost is overriden by values from the rightmost):
+        # default file path < environment variables < provided filepath < provided config object < provided parameters
+
+        env_conf = config.EnvironmentConfig()
+        if not (config_file or conf):
+            base_conf = config.BasecampFileConfig.load_from_default_paths(silent_fail=True)
+            base_conf.merge(env_conf)
+        else:
+            base_conf = env_conf
+
+        if config_file:
+            # we merge in the contents of the file, then we swap in the file_conf
+            # so it can be the persistent location to save to
+            file_conf = config.BasecampFileConfig.from_filepath(config_file)
+            base_conf.merge(file_conf)
+            file_conf.merge(base_conf)
+            base_conf = file_conf
+
+        if conf:
+            base_conf.merge(conf)
+            if conf.is_persistent:
+                # if the user-provided configuration object is persistent,
+                # make it our base_conf so we can persist our settings to it
+                conf.merge(base_conf)
+                base_conf = conf
+
+        # parameters directly passed into the constructor
+        args_conf = config.BasecampMemoryConfig(
+            client_id=client_id, client_secret=client_secret,
+            redirect_uri=redirect_uri, access_token=access_token,
+            refresh_token=refresh_token, account_id=account_id
+        )
+
+        base_conf.merge(args_conf)
+
+        if not base_conf.is_usable:  # user didn't provide enough fields in constructor
             raise ValueError("Unable to find a suitable Basecamp 3 configuration. Try running `bc3 configure`.")
 
-        self._conf = conf
+        self._conf = base_conf
         session = _create_session()
         session.mount("https://", adapter=Basecamp3TransportAdapter())
         self.session = self._session = session
@@ -117,15 +146,11 @@ class Basecamp3(object):
         - BASECAMP_REDIRECT_URL
         - BASECAMP_ACCESS_TOKEN
         - BASECAMP_REFRESH_TOKEN
+        - BASECAMP_ACCOUNT_ID
         """
-        env = os.environ
-        return cls(
-            client_id=env['BASECAMP_CLIENT_ID'],
-            client_secret=env['BASECAMP_CLIENT_SECRET'],
-            redirect_uri=env['BASECAMP_REDIRECT_URL'],
-            access_token=env['BASECAMP_ACCESS_TOKEN'],
-            refresh_token=env['BASECAMP_REFRESH_TOKEN']
-        )
+        conf = config.EnvironmentConfig()
+
+        return cls(conf=conf)
 
     @property
     def who_am_i(self):

@@ -5,15 +5,13 @@ BasecampConfig and some built-in subclasses of it.
 
 import abc
 import os
-import six
-from six.moves.configparser import ConfigParser, NoSectionError, NoOptionError
+from configparser import ConfigParser, NoOptionError, NoSectionError
 
 from . import constants, exc
 from .log import logger
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BasecampConfig(object):
+class BasecampConfig(object, metaclass=abc.ABCMeta):
     """
     Base configuration object for Basecamp3. Stores important tokens and info necessary to use the Basecamp 3 API.
     Subclass BasecampConfig when you would like to use your own persistent storage for configuration data. An in-memory
@@ -53,6 +51,20 @@ class BasecampConfig(object):
         self.refresh_token = refresh_token
         self.account_id = account_id
 
+    def merge(self, other):
+        """
+        Merges the values of another config into this one in-place.
+        Values that are `None` in the other config will _not_
+        overwrite existing values in this receiving config.
+
+        :param other: another config object to merge into this one
+        :type other: BasecampConfig
+        """
+        for key, val in other.__dict__.items():
+            if val is None:
+                continue
+            setattr(self, key, val)
+
     @property
     def is_usable(self):
         """
@@ -66,8 +78,20 @@ class BasecampConfig(object):
         :return: True if the API is potentially callable with the information given or False if it lacks required fields
         :rtype: bool
         """
-        can_refresh_tokens = self.client_id and self.client_secret and self.redirect_uri and self.refresh_token
+        can_refresh_tokens = self.client_id and self.client_secret and self.refresh_token
         return bool(can_refresh_tokens or self.access_token)
+
+    @property
+    @abc.abstractmethod
+    def is_persistent(self):
+        """
+        Return True if this class is capable of storing configuration in a
+        way that it can be read back in by a new Python process.
+
+        :return: whether this Config class can save to a non-volatile location
+        :rtype: bool
+        """
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def read(self):
@@ -88,6 +112,11 @@ class BasecampMemoryConfig(BasecampConfig):
     """
     Store the BasecampConfig fields entirely within memory. read() and save() are no-ops.
     """
+
+    @property
+    def is_persistent(self):
+        return False
+
     def read(self):
         """
         There is no persistence here. Do nothing.
@@ -126,6 +155,12 @@ class BasecampFileConfig(BasecampConfig):
                                                  redirect_uri=redirect_uri, access_token=access_token,
                                                  refresh_token=refresh_token, account_id=account_id)
         self.filepath = filepath
+        if filepath:
+            self.read()
+
+    @property
+    def is_persistent(self):
+        return True
 
     def read(self, filepath=None):
         """
@@ -160,6 +195,8 @@ class BasecampFileConfig(BasecampConfig):
         :type filepath: str
         """
         if filepath is None:
+            if self.filepath is None:
+                self.filepath = constants.DEFAULT_CONFIG_FILE
             filepath = self.filepath
         try:
             os.makedirs(os.path.dirname(filepath), mode=0o770)
@@ -174,7 +211,7 @@ class BasecampFileConfig(BasecampConfig):
                 value = getattr(self, key)
                 if value is None:
                     continue
-                config.set('BASECAMP', key, six.text_type(value))
+                config.set('BASECAMP', key, str(value))
                 setattr(self, key, value)
             except (NoSectionError, NoOptionError):
                 pass
@@ -201,14 +238,22 @@ class BasecampFileConfig(BasecampConfig):
         return new_config
 
     @classmethod
-    def load_from_default_paths(cls):
+    def load_from_default_paths(cls, silent_fail=False):
         """
-        Cycle through a list of default config file locations and attempt to load them in order, stopping when one
-        actually works. File not found errors are ignored. Other errors are logged.
+        Cycle through a list of default config file locations and attempt to
+        load them in order, stopping when one actually works. File not found
+        errors are ignored. Other errors are logged.
 
+        If `silent_fail` is `True`, an empty BasecampFileConfig is returned.
+        Otherwise, `NoDefaultConfigurationFound` is raised.
+
+        :param silent_fail: do not raise an error if none of the default
+                            locations are valid
+        :type silent_fail: bool
         :return: a new instance of BasecampFileConfig
         :rtype basecampy3.config.BasecampFileConfig
-        :raises basecampy3.exc.NoDefaultConfigurationFound: if none of the files in the list exist
+        :raises basecampy3.exc.NoDefaultConfigurationFound: if none of the
+                files in the list exist
         """
         env_defined = os.getenv("BC3_CONFIG_PATH")
         if env_defined:
@@ -220,5 +265,46 @@ class BasecampFileConfig(BasecampConfig):
                 pass  # the file probably does not exist
             except Exception as ex:
                 logger.error("%s: %s is invalid.", type(ex).__name__, config_file)
-        else:
-            raise exc.NoDefaultConfigurationFound()
+
+        if silent_fail:
+            return cls()
+
+        raise exc.NoDefaultConfigurationFound()
+
+
+class EnvironmentConfig(BasecampConfig):
+    ENVIRONMENT_VARIABLE_MAP = {
+        "client_id": "BASECAMP_CLIENT_ID",
+        "client_secret": "BASECAMP_CLIENT_SECRET",
+        "redirect_uri": "BASECAMP_REDIRECT_URL",
+        "access_token": "BASECAMP_ACCESS_TOKEN",
+        "refresh_token": "BASECAMP_REFRESH_TOKEN",
+        "account_id": "BASECAMP_ACCOUNT_ID",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(EnvironmentConfig, self).__init__(*args, **kwargs)
+        self.read()
+
+    @property
+    def is_persistent(self):
+        return False
+
+    def read(self):
+        for attr, varname in self.ENVIRONMENT_VARIABLE_MAP.items():
+            setattr(self, attr, os.getenv(varname))
+
+    def save(self):
+        """
+        This writes our instance values back to the os.environ dictionary, but
+        that is not persistent. It will only be accessible within this
+        particular Python process.
+
+        It's unlikely you would ever want to use this, but it's here for
+        completeness.
+        """
+        for attr, varname in self.ENVIRONMENT_VARIABLE_MAP.items():
+            value = getattr(self, attr)
+            if value is None:
+                continue
+            os.environ[varname] = value
