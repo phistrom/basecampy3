@@ -56,7 +56,7 @@ class People(EndpointURLs):
         :return: the URL to get the desired Person
         :rtype: basecampy3.urls.URL
         """
-        return self._get("/people/{person}.json")
+        return self._get("/people/{person}.json", person=person)
 
     def get_myself(self):
         """

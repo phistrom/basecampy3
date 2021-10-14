@@ -22,5 +22,5 @@ class Questionnaires(EndpointURLs):
         :return: the URL for getting the desired Questionnaire
         :rtype: basecampy3.urls.URL
         """
-        return self._get("/buckets/{project}/questionnaires/{questionnaire}/questions.json",
+        return self._get("/buckets/{project}/questionnaires/{questionnaire}.json",
                          project=project, questionnaire=questionnaire)
