@@ -20,4 +20,4 @@ class Schedules(EndpointURLs):
         :rtype: basecampy3.urls.URL
         """
         return self._get("/buckets/{project}/schedules/{schedule}.json",
-                         proejct=project, schedule=schedule)
+                         project=project, schedule=schedule)

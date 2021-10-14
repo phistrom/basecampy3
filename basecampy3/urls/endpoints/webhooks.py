@@ -37,6 +37,8 @@ class Webhooks(EndpointURLs):
         :return: the URL for retrieving the desired Webhook
         :rtype: basecampy3.urls.URL
         """
+        return self._get("/buckets/{project}/webhooks/{webhook}.json",
+                         project=project, webhook=webhook)
 
     def create(self, project):
         """

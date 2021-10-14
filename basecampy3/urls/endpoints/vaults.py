@@ -42,7 +42,8 @@ class Vaults(RecordingEndpointURLs):
         :return: the URL for retrieving the desired Vault
         :rtype: basecampy3.urls.URL
         """
-        return self._get("/buckets/{project}/vaults/{vault}.json")
+        return self._get("/buckets/{project}/vaults/{vault}.json",
+                         project=project, vault=vault)
 
     def create(self, project, vault):
         """
@@ -73,4 +74,5 @@ class Vaults(RecordingEndpointURLs):
         :return: the URL for modifying the desired Vault
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project}/vaults/{vault}.json")
+        return self._put("/buckets/{project}/vaults/{vault}.json",
+                         project=project, vault=vault)
