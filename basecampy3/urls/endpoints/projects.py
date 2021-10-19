@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Project objects in the Basecamp 3 API.
 """
 
 from .base import EndpointURLs
@@ -41,7 +42,7 @@ class Projects(EndpointURLs):
         """
         return self._get("/projects/{project}.json", project=project)
 
-    def create(self):
+    def create(self, name, **kwargs):
         """
         Create a new project.
 
@@ -50,7 +51,9 @@ class Projects(EndpointURLs):
         :return: the URL to create a new Project item
         :rtype: basecampy3.urls.URL
         """
-        return self._post("/projects.json")
+        kwargs["name"] = name
+
+        return self._post("/projects.json", json_dict=kwargs)
 
     def update(self, project):
         """

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+URL class definition module. URLs are used to more easily make requests to the
+Basecamp 3 API.
 """
 
 import requests
@@ -8,11 +10,34 @@ from . import util
 
 
 class URL(object):
-    def __init__(self, url, method="GET", params=None):
+    """
+    Grouping of a URL string, an HTTP verb, and other optional parameters that
+    may be needed to interact with a single endpoint of the Basecamp 3 API.
+    """
+
+    def __init__(self, url, method="GET", params=None, headers=None, filepath=None, json_dict=None):
+        """
+        :param url: the full URL as a string
+        :type url: typing.AnyStr
+        :param method: the HTTP verb to use (GET, POST, PUT, DELETE, etc.)
+        :type method: typing.AnyStr
+        :param params: a query string (?key1=val1&key2=val2...) as a dictionary
+        :type params: dict
+        :param headers: additional headers to include with this request
+        :type headers: dict
+        :param filepath: path to a file to use as content for the request body
+        :type filepath: typing.AnyStr
+        :param json_dict: a dictionary to JSONify and use as the request body
+        :type json_dict: dict
+        """
         self.url = url
         self.method = method
         self._params = None
         self.params = params
+        self.filepath = filepath
+        self._headers = None
+        self.headers = headers
+        self.json_dict = json_dict
 
     @property
     def params(self):
@@ -24,7 +49,18 @@ class URL(object):
             value = {}
         self._params = util.filter_unused(value)
 
-    def request(self, session=None, params=None, **kwargs):
+    @property
+    def headers(self):
+        return self._headers
+
+    @headers.setter
+    def headers(self, value):
+        if value is None:
+            self._headers = {}
+        else:
+            self._headers = value
+
+    def request(self, session=None, **kwargs):
         """
         Perform a requests.request with the given Session object.
         This object's method and URL, as well as the kwargs you supply
@@ -42,11 +78,33 @@ class URL(object):
         # if there's already params for this URL, update it's values with any that were
         # passed into this function
         params_to_use = self.params.copy()
-        if params is None:
-            params = {}
-        params_to_use.update(params)
+        try:
+            params_to_use.update(kwargs["params"])
+        except KeyError:
+            pass  # no extra params were given
         params_to_use = util.filter_unused(params_to_use)
-        response = session.request(method=self.method, url=self.url, params=params_to_use, **kwargs)
+
+        headers = self.headers.copy()
+        try:
+            headers.update(kwargs["headers"])
+        except KeyError:
+            pass  # no extra headers were given
+
+        if self.json_dict and not kwargs.get("json"):
+            kwargs["json"] = self.json_dict
+
+        kwargs["method"] = self.method
+        kwargs["url"] = self.url
+        kwargs["params"] = params_to_use
+        kwargs["headers"] = headers
+
+        if self.filepath and not kwargs.get("data"):
+            with open(self.filepath, "rb") as infile:
+                kwargs["data"] = infile
+                response = session.request(**kwargs)
+        else:
+            response = session.request(**kwargs)
+
         return response
 
     def __eq__(self, other):

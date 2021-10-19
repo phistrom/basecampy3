@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Base class for Recording objects in the Basecamp 3 API.
 """
 
 import abc
@@ -11,6 +12,9 @@ from .. import util
 @six.add_metaclass(abc.ABCMeta)
 class RecordingEndpointURLs(EndpointURLs):
     """
+    Not all Recordings support all of these features.
+    For instance, Comments do not support Client Visibility.
+
     https://github.com/basecamp/bc3-api/blob/master/sections/recordings.md
     """
 
@@ -48,7 +52,7 @@ class RecordingEndpointURLs(EndpointURLs):
         params = util.filter_unused(params)
         return self._get("/projects/recordings.json", params=params)
 
-    def trash(self):
+    def trash(self, project, recording):
         """
         Trash a Recording.
 
@@ -57,9 +61,10 @@ class RecordingEndpointURLs(EndpointURLs):
         :return: the URL for trashing a Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project_id}/recordings/{record_id}/status/trashed.json")
+        return self._put("/buckets/{project}/recordings/{recording}/status/trashed.json",
+                         project=project, recording=recording)
 
-    def archive(self):
+    def archive(self, project, recording):
         """
         Archive a Recording.
 
@@ -68,34 +73,42 @@ class RecordingEndpointURLs(EndpointURLs):
         :return: the URL for archiving a Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project_id}/recordings/{record_id}/status/archived.json")
+        return self._put("/buckets/{project}/recordings/{recording}/status/archived.json",
+                         project=project, recording=recording)
 
-    def unarchive(self):
+    def unarchive(self, project, recording):
         """
         Unarchive a Recording.
 
         :return: the URL for unarchiving a Recording.
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project_id}/recordings/{record_id}/status/active.json")
+        return self._put("/buckets/{project}/recordings/{recording}/status/active.json",
+                         project=project, recording=recording)
 
-    def client_visibility(self, project, record):
+    def client_visibility(self, project, recording, visible_to_clients):
         """
         Modify whether a particular Recording object is visible to the Client.
+        Not supported by Comment objects.
 
         https://github.com/basecamp/bc3-api/blob/master/sections/client_visibility.md#toggle-client-visibility
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
+        :param visible_to_clients: True if a recording should be visible to clients
+        :type visible_to_clients: bool
         :return: the URL to use to toggle visibility of the Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project}/recordings/{record}/client_visibility.json",
-                         project=project, record=record)
+        json_dict = {
+            "visible_to_clients": visible_to_clients,
+        }
+        return self._put("/buckets/{project}/recordings/{recording}/client_visibility.json",
+                         project=project, recording=recording, json_dict=json_dict)
 
-    def events(self, project, record):
+    def events(self, project, recording):
         """
         Get a list of changes made to a given Recording.
 
@@ -103,15 +116,15 @@ class RecordingEndpointURLs(EndpointURLs):
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
         :return: the URL to retrieve the Events on the desired Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._get("/buckets/{project}/recordings/{record}/events.json",
-                         project=project, record=record)
+        return self._get("/buckets/{project}/recordings/{recording}/events.json",
+                         project=project, recording=recording)
 
-    def list_subscriptions(self, project, record):
+    def list_subscriptions(self, project, recording):
         """
         List the subscribers of a given Recording. Subscribers are People who
         are notified when a Recording is updated.
@@ -120,15 +133,15 @@ class RecordingEndpointURLs(EndpointURLs):
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
         :return: the URL for getting the list of People subscribed to a Recording
         :rtype:
         """
-        return self._get("/buckets/{project}/recordings/{record}/subscription.json",
-                         project=project, record=record)
+        return self._get("/buckets/{project}/recordings/{recording}/subscription.json",
+                         project=project, recording=recording)
 
-    def subscribe_myself(self, project, record):
+    def subscribe_myself(self, project, recording):
         """
         Subscribe the current user to the given Recording.
 
@@ -136,15 +149,15 @@ class RecordingEndpointURLs(EndpointURLs):
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
         :return: the URL for subscribing the current user to the desired Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._post("/buckets/{project}/recordings/{record}/subscription.json",
-                          project=project, record=record)
+        return self._post("/buckets/{project}/recordings/{recording}/subscription.json",
+                          project=project, recording=recording)
 
-    def unsubscribe_myself(self, project, record):
+    def unsubscribe_myself(self, project, recording):
         """
         Unsubscribe the current user from the given Recording.
 
@@ -152,15 +165,15 @@ class RecordingEndpointURLs(EndpointURLs):
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
         :return: the URL for unsubscribing the current user from the desired Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._delete("/buckets/{project}/recordings/{record}/subscription.json",
-                            project=project, record=record)
+        return self._delete("/buckets/{project}/recordings/{recording}/subscription.json",
+                            project=project, recording=recording)
 
-    def update_subscriptions(self, project, record):
+    def update_subscriptions(self, project, recording):
         """
         Add/remove subscribers to a Recording.
 
@@ -168,10 +181,10 @@ class RecordingEndpointURLs(EndpointURLs):
 
         :param project: the ID of a Project
         :type project: int
-        :param record: the ID of a Recording
-        :type record: int
+        :param recording: the ID of a Recording
+        :type recording: int
         :return: the URL for modifying the subscriber list of the desired Recording
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/buckets/{project}/recordings/{record}/subscription.json",
-                         project=project, record=record)
+        return self._put("/buckets/{project}/recordings/{recording}/subscription.json",
+                         project=project, recording=recording)
