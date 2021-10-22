@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Question Answer objects in the Basecamp 3 API.
 """
 
 from .recordings import RecordingEndpointURLs
@@ -7,7 +8,15 @@ from .recordings import RecordingEndpointURLs
 
 class QuestionAnswers(RecordingEndpointURLs):
     """
+    Almost none of the Recording endpoint URLs work for Question Answers:
+      * Archiving/Unarchiving Answers is unsupported.
+      * Client Visibility is unsupported.
+      * Events are unsupported.
+      * Subscriptions are unsupported.
+      * Trashing is unsupported.
+
     https://github.com/basecamp/bc3-api/blob/master/sections/question_answers.md
+    https://3.basecamp-help.com/article/50-automatic-check-ins
     """
 
     RECORD_TYPE = "Question::Answer"

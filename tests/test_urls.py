@@ -9,6 +9,7 @@ import re
 import time
 import unittest
 import uuid
+from datetime import date, datetime, timedelta, timezone
 
 from basecampy3 import Basecamp3, exc
 
@@ -16,14 +17,29 @@ logger = logging.getLogger("basecampy3")
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
+try:
+    PRE_MADE_PROJECT_ID = os.environ["BC3_TEST_PROJECT_ID"]
+    """
+    REQUIRED: An ID for a Project you create in advance that must have 
+    a Question (Check-In), an Answer to that Question, and Email Forwards
+    must be enabled.
+    """
+except Exception:
+    raise EnvironmentError("You must define environment variable "
+                           "'BC3_TEST_PROJECT_ID' so that Questions and "
+                           "Forwards can be tested.")
+
 
 class APITest(unittest.TestCase):
     PROJECT_TEST_NAME_PREFIX = "_DELETE_pytest__basecampy3_"
     PROJECT_TEST_DESCRIPTION = "Trash me I am a test project."
     UPLOAD_TEST_FILE_NAME = "testfile.png"
 
-    def setUp(self):
+    def __init__(self, methodName='runTest'):
+        super(APITest, self).__init__(methodName=methodName)
         self.api = Basecamp3()
+
+    def setUp(self):
         proj = self._create_test_project(middle="URLs")
         self.project_id = proj["id"]
         dock = proj["dock"]
@@ -35,6 +51,17 @@ class APITest(unittest.TestCase):
         self.questionnaire_id = dock_by_name["questionnaire"]
         self.vault_id = dock_by_name["vault"]
         self.inbox_id = dock_by_name["inbox"]
+
+        # premade project that will be used for
+        # a subset of the tests (because they do not support
+        # creation via the API, the data must already exist)
+        url = self.api.urls.projects.get(project=PRE_MADE_PROJECT_ID)
+        data = self._get_data(url)
+        self.premade_project = data["id"]
+        dock = data["dock"]
+        dock_by_name = {i["name"]: i["id"] for i in dock}
+        self.premade_questionnaire = dock_by_name["questionnaire"]
+        self.premade_inbox = dock_by_name["inbox"]
 
     def tearDown(self):
         # trash any projects we missed
@@ -61,6 +88,7 @@ class APITest(unittest.TestCase):
             logger.error("Not all test projects got deleted.")
         logger.info("Test(s) complete. Deleted %s out of %s test project(s).",
                     trashed, len(projects_to_delete))
+        time.sleep(1)
 
     def _create_test_project(self, middle="", suffix=None):
         if suffix is None:
@@ -75,7 +103,6 @@ class APITest(unittest.TestCase):
         return project_data
 
     def test_campfire_lines(self):
-        campfire_lines = self.api.urls.campfire_lines
         test_text = "Good morning!"
 
         # Create Campfire Line
@@ -364,6 +391,430 @@ class APITest(unittest.TestCase):
 
         self._recording_tests(message_id, self.api.urls.messages)
 
+        logger.info("Successfully tested Message objects!")
+
+    def test_people(self):
+        # Get Current User
+        person_id = self._get_current_user()
+
+        # Get User
+        url = self.api.urls.people.get(person=person_id)
+        data = self._get_data(url)
+        assert data["id"] == person_id
+
+        # List Pingable
+        url = self.api.urls.people.list_pingable()
+        _ = self._get_data(url)
+
+        # List by Project
+        url = self.api.urls.people.list_by_project(self.project_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # List all People
+        url = self.api.urls.people.list()
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        logger.info("Successfully tested People objects!")
+
+    def test_projects(self):
+        # List Projects
+        url = self.api.urls.projects.list()
+        data = self._get_data(url)
+        assert len(data) > 1
+
+        # Get Project
+        url = self.api.urls.projects.get(project=self.project_id)
+        data = self._get_data(url)
+        assert data["id"] == self.project_id
+        old_name = data["name"]
+        old_desc = data["description"]
+
+        # we will skip Create projects because it gets tested by every other test!
+
+        # Update Project
+        new_name = "%s Renamed" % old_name
+        new_desc = "%s Modified" % old_desc
+
+        url = self.api.urls.projects.update(project=self.project_id,
+                                            name=new_name,
+                                            description=new_desc)
+        data = self._get_data(url)
+        assert data["id"] == self.project_id
+        assert data["name"] == new_name
+        assert data["description"] == new_desc
+
+        # We will skip trashing a project because that is also tested by
+        # every other test.
+
+        # Update Membership
+        # TODO
+
+        logger.info("Successfully tested Project objects!")
+
+    def test_questionnaires(self):
+        # Get Questionnaire
+        url = self.api.urls.questionnaires.get(project=self.project_id,
+                                               questionnaire=self.questionnaire_id)
+        data = self._get_data(url)
+        assert data["id"] == self.questionnaire_id
+
+        logger.info("Successfully tested Questionnaire objects!")
+
+    def test_questions_and_answers(self):
+        # List Questions
+        url = self.api.urls.questions.list(
+            project=self.premade_project, questionnaire=self.premade_questionnaire
+        )
+        data = self._get_data(url)
+        question_id = data[0]["id"]
+
+        # Get Question
+
+        url = self.api.urls.questions.get(project=self.premade_project,
+                                          question=question_id)
+        data = self._get_data(url)
+        assert data["id"] == question_id
+
+        # List Answers by Question
+        url = self.api.urls.question_answers.list_by_question(
+            project=self.premade_project, question=question_id
+        )
+        data = self._get_data(url)
+        answer_id = data[0]["id"]
+
+        # Get Answer by ID
+        url = self.api.urls.question_answers.get(
+            project=self.premade_project, answer=answer_id
+        )
+        data = self._get_data(url)
+        assert data["id"] == answer_id
+
+        # Test all Recording features of an Answer object
+        self._recording_tests(answer_id, self.api.urls.question_answers,
+                              test_archiving=False, test_visibility=False,
+                              test_events=False, test_subscriptions=False,
+                              trash=False)
+
+    def test_schedule_entries(self):
+        now = datetime.now()
+        tomorrow = now + timedelta(days=1)
+        test_summary = "Basecampy Test Entry"
+        test_description = "Attend this test entry <strong>tomorrow!</strong>"
+
+        # Create Schedule Entry
+        url = self.api.urls.schedule_entries.create(project=self.project_id,
+                                                    schedule=self.schedule_id,
+                                                    summary=test_summary,
+                                                    starts_at=now,
+                                                    ends_at=tomorrow,
+                                                    description=test_description,
+                                                    all_day=False,
+                                                    notify=True)
+        data = self._get_data(url)
+        # parse and set to UTC
+        starts_at = datetime.strptime(data["starts_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        ends_at = datetime.strptime(data["ends_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        # convert original input to UTC
+        now_utc = now.replace(microsecond=0).astimezone(timezone.utc)
+        tomorrow_utc = tomorrow.replace(microsecond=0).astimezone(timezone.utc)
+
+        assert starts_at == now_utc
+        assert ends_at == tomorrow_utc
+
+        entry_id = data["id"]
+
+        # Get Schedule Entry
+        url = self.api.urls.schedule_entries.get(project=self.project_id,
+                                                 entry=entry_id)
+        data = self._get_data(url)
+        assert entry_id == data["id"]
+
+        # List Schedule Entries by Schedule
+        url = self.api.urls.schedule_entries.list_by_schedule(project=self.project_id,
+                                                              schedule=self.schedule_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Update Schedule Entry
+        new_summary = "Basecampy modified summary"
+        new_starts_at = datetime.now()
+        new_ends_at = new_starts_at + timedelta(hours=1)
+        new_desc = "Updated Basecampy description on a scheduled event!"
+
+        url = self.api.urls.schedule_entries.update(
+            project=self.project_id, entry=entry_id, summary=new_summary,
+            starts_at=new_starts_at, ends_at=new_ends_at, description=new_desc,
+            all_day=True, notify=False
+        )
+        data = self._get_data(url)
+        assert data["id"] == entry_id
+        assert data["title"] == new_summary
+
+        self._recording_tests(entry_id, self.api.urls.schedule_entries)
+
+    def test_schedules(self):
+        # Get Schedule
+        url = self.api.urls.schedules.get(project=self.project_id, schedule=self.schedule_id)
+        data = self._get_data(url)
+        assert data["id"] == self.schedule_id
+
+    def test_templates(self):
+        template_prefix = "BASECAMPY_TEST_TEMPLATE_"
+        test_template_name = "%s%s" % (template_prefix, time.time())
+        test_template_desc = "Created by Basecampy3"
+
+        # Create a Template
+        url = self.api.urls.templates.create(name=test_template_name,
+                                             description=test_template_desc)
+        data = self._get_data(url)
+        template_id = data["id"]
+        assert data["name"] == test_template_name
+        assert "dock" in data
+
+        # Get Template
+        url = self.api.urls.templates.get(template=template_id)
+        data = self._get_data(url)
+        assert template_id == data["id"]
+
+        # Update Template
+        new_name = "%s_updated" % test_template_name
+        new_desc = "%s_updated" % test_template_desc
+
+        url = self.api.urls.templates.update(template=template_id,
+                                             name=new_name,
+                                             description=new_desc)
+        data = self._get_data(url)
+        assert template_id == data["id"]
+        assert new_name == data["name"]
+        assert new_desc == data["description"]
+
+        # Create from Template (in Projects module)
+        project_name = "%sfromTemplate%s" % (self.PROJECT_TEST_NAME_PREFIX, time.time())
+        project_desc = "Basecampy test from template creation"
+        url = self.api.urls.projects.create_from_template(
+            template=template_id, name=project_name, description=project_desc
+        )
+        data = self._get_data(url)
+        construction_id = data["id"]
+        assert "status" in data
+
+        max_attempts = 30
+        # Get Construction Status (in Projects module)
+        for attempt in range(1, max_attempts + 1):
+            if attempt > 1:
+                logger.info("Template Test: Attempt %s/%s...",
+                            attempt, max_attempts)
+            url = self.api.urls.projects.get_construction_status(
+                template=template_id, project_construction=construction_id
+            )
+            data = self._get_data(url)
+            assert data["id"] == construction_id
+            if data["status"] == "completed":
+                break
+            elif data["status"] == "processing":
+                time.sleep(1)
+                continue
+            else:
+                raise AssertionError("Template Test: Unknown project "
+                                     "construction status '%s'" % data["status"])
+        else:
+            raise AssertionError("Template Test: Project still under construction after %s attempts. Failure.")
+        assert data["project"]["name"] == project_name
+        assert data["project"]["description"] == project_desc
+
+        project_id = data["project"]["id"]
+
+        # trash this new template-created project
+        url = self.api.urls.projects.trash(project=project_id)
+        self._get_no_content(url)
+
+        # List Templates
+        url = self.api.urls.templates.list()
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Trash Templates that have the test prefix
+        test_templates = [t for t in data if t["name"].startswith(template_prefix)]
+        for template in test_templates:
+            url = self.api.urls.templates.trash(template=template["id"])
+            self._get_no_content(url)
+
+        # List trashed Templates
+        url = self.api.urls.templates.list(status="trashed")
+        data = self._get_data(url)
+        for d in data:
+            if d["id"] == template_id:
+                break
+        else:
+            raise AssertionError("Couldn't find trashed test template (ID=%s)" % template_id)
+
+        logger.info("Successfully tested Project Templates!")
+
+    def test_todo_sets(self):
+        url = self.api.urls.todo_sets.get(project=self.project_id, todo_set=self.todoset_id)
+        data = self._get_data(url)
+        assert data["id"] == self.todoset_id
+        logger.info("Successfully tested TodoSets!")
+
+    def test_todo_collections(self):
+        todolist_name = "Basecampy TodoList"
+        todolist_desc = "Created during <strong>Basecampy</strong> unit tests."
+        person_id = self._get_current_user()
+        # Create TodoList
+        url = self.api.urls.todo_lists.create(
+            project=self.project_id, todo_set=self.todoset_id,
+            name=todolist_name, description=todolist_desc
+        )
+        data = self._get_data(url)
+        assert data["name"] == todolist_name
+        assert data["description"] == todolist_desc
+
+        todolist_id = data["id"]
+
+        # Update TodoList
+        new_list_name = "%s_updated" % todolist_name
+        new_list_desc = "%s_updated" % todolist_desc
+        url = self.api.urls.todo_lists.update(
+            project=self.project_id, todolist=todolist_id,
+            name=new_list_name, description=new_list_desc
+        )
+        data = self._get_data(url)
+        assert data["id"] == todolist_id
+        assert data["name"] == new_list_name
+        assert data["description"] == new_list_desc
+
+        # Create a To-do Item
+
+        test_content = "A Basecampy thing to do"
+        test_todo_desc = "Basecampy <strong>wuz</strong> <em>here</em>."
+        data = self._create_todo_item(todolist_id, person_id, test_content, test_todo_desc)
+        todo1 = data["id"]
+        assert data["type"] == "Todo"
+        assert len(data["assignees"]) > 0
+        assert len(data['completion_subscribers']) > 0
+
+        # Create a TodoGroup
+        todogroup_name = "Basecampy3 Test Group"
+        url = self.api.urls.todo_groups.create(project=self.project_id, todolist=todolist_id, name=todogroup_name)
+        data = self._get_data(url)
+        todogroup_id = data["id"]
+        assert data["name"] == todogroup_name
+
+        # List TodoGroups
+        url = self.api.urls.todo_groups.list_by_todolist(project=self.project_id, todolist=todolist_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Get TodoGroup
+        url = self.api.urls.todo_groups.get(project=self.project_id, todogroup=todogroup_id)
+        data = self._get_data(url)
+        assert data["id"] == todogroup_id
+
+        # Reposition TodoGroup
+        url = self.api.urls.todo_groups.reposition(project=self.project_id,
+                                                   todogroup=todogroup_id,
+                                                   position=0)
+        self._get_no_content(url)
+
+        # Get To-do Item
+        url = self.api.urls.todos.get(project=self.project_id, to_do=todo1)
+        data = self._get_data(url)
+        assert data["position"] == 1
+
+        # Create a second To-do item in the To-do Group
+        todo2_content = "Basecampy second thing to do"
+        todo2_desc = "<strong>Something else</strong> you can delete actually."
+
+        todo2 = self._create_todo_item(todogroup_id, person_id, todo2_content, todo2_desc)
+
+        # List To-do Items by To-do List
+        # in the To-do Group we made
+        url = self.api.urls.todos.list_by_todolist(project=self.project_id, todolist=todogroup_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # in the To-do List we made
+        url = self.api.urls.todos.list_by_todolist(project=self.project_id, todolist=todolist_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # "Complete" a To-do Item
+        url = self.api.urls.todos.complete(project=self.project_id, to_do=todo1)
+        self._get_no_content(url)
+
+        # List completed To-do Items in the To-do List
+        url = self.api.urls.todos.list_by_todolist(project=self.project_id,
+                                                   todolist=todolist_id,
+                                                   completed=True)
+        data = self._get_data(url)
+        assert len(data) > 0
+        for todo in data:
+            # should only have completed items
+            assert todo["completed"] is True
+
+        # "Uncomplete" a To-do Item
+        url = self.api.urls.todos.uncomplete(project=self.project_id, to_do=todo1)
+        self._get_no_content(url)
+
+        # Update a To-do
+
+        # first we will get the To-do Item so we can update it (omitting any
+        # field in the To-do Item update will cause that field to get wiped/reset)
+        url = self.api.urls.todos.get(project=self.project_id, to_do=todo1)
+        data = self._get_data(url)
+
+        new_content = "%s_updated" % data["content"]
+        starts_on = date.today() + timedelta(days=1)
+        due_on = starts_on + timedelta(days=1)
+
+        url = self.api.urls.todos.update(
+            project=self.project_id, to_do=todo1, content=new_content,
+            description=data["description"], assignee_ids=data["assignees"],
+            completion_subscriber_ids=data["completion_subscribers"],
+            notify=True, due_on=due_on, starts_on=starts_on
+        )
+
+        data = self._get_data(url)
+        assert data["id"] == todo1
+        assert data["content"] == new_content
+        assert data["due_on"] == due_on.strftime("%Y-%m-%d")
+        assert data["starts_on"] == starts_on.strftime("%Y-%m-%d")
+
+        # Reposition a To-do Item
+
+        todo2_id = todo2["id"]
+        url = self.api.urls.todos.reposition(project=self.project_id,
+                                             to_do=todo2_id, position=1)
+        self._get_no_content(url)
+
+        # List To-do Lists
+        url = self.api.urls.todo_lists.list_by_todoset(project=self.project_id, todo_set=self.todoset_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Get To-do List
+        url = self.api.urls.todo_lists.get(project=self.project_id, todolist=todolist_id)
+        data = self._get_data(url)
+        assert data["id"] == todolist_id
+        assert data["name"] == new_list_name
+        assert data["description"] == new_list_desc
+
+        # perform Recording Tests on a To-do Item
+        self._recording_tests(recording_id=todo1,
+                              recording_urls=self.api.urls.todos,
+                              test_visibility=False)
+
+        # perform Recording Tests on a To-do Group
+        self._recording_tests(recording_id=todogroup_id,
+                              recording_urls=self.api.urls.todo_groups,
+                              test_visibility=False)
+
+        # perform Recording Tests on a To-do List
+        self._recording_tests(recording_id=todolist_id,
+                              recording_urls=self.api.urls.todo_lists)
+
     def test_uploads(self):
         uploaded_file_name = "awesome.png"
         # Create attachment
@@ -410,7 +861,9 @@ class APITest(unittest.TestCase):
             raise exc.Basecamp3Error(response=response)
         return response
 
-    def _recording_tests(self, recording_id, recording_urls, test_visibility=True, trash=True):
+    def _recording_tests(self, recording_id, recording_urls, test_listing=True, test_archiving=True,
+                         test_visibility=True, test_events=True,
+                         test_subscriptions=True, trash=True):
         """
         Test all the different things Recordings support. Some Recordings do
         not support some functionality. Turn off tests for them so you don't
@@ -426,22 +879,24 @@ class APITest(unittest.TestCase):
         :type test_visibility: bool
         """
         # Test List Recordings
-        url = recording_urls.list(project=self.project_id)
-        data = self._get_data(url)
-        for rec in data:
-            if rec["id"] == recording_id:
-                break
-        else:
-            raise AssertionError("Did not find recording ID %s in project ID %s"
-                                 % (recording_id, self.project_id))
+        if test_listing:
+            url = recording_urls.list(project=self.project_id)
+            data = self._get_data(url)
+            for rec in data:
+                if rec["id"] == recording_id:
+                    break
+            else:
+                raise AssertionError("Did not find recording ID %s in project ID %s"
+                                     % (recording_id, self.project_id))
 
-        # Test Archive Recording
-        url = recording_urls.archive(project=self.project_id, recording=recording_id)
-        self._get_no_content(url)
+        if test_archiving:
+            # Test Archive Recording
+            url = recording_urls.archive(project=self.project_id, recording=recording_id)
+            self._get_no_content(url)
 
-        # Test Unarchive Recording
-        url = recording_urls.unarchive(project=self.project_id, recording=recording_id)
-        self._get_no_content(url)
+            # Test Unarchive Recording
+            url = recording_urls.unarchive(project=self.project_id, recording=recording_id)
+            self._get_no_content(url)
 
         if test_visibility:
             for visibility in (True, False):
@@ -451,25 +906,27 @@ class APITest(unittest.TestCase):
                 data = self._get_data(url)
                 assert data["visible_to_clients"] == visibility
 
-        url = recording_urls.events(project=self.project_id, recording=recording_id)
-        data = self._get_data(url)
-        # There should be at least one event in here. More like 6 or 7 after
-        # all the things we did above.
-        assert len(data) > 0
-        event = data[0]
-        assert event["recording_id"] == recording_id
-        assert "action" in event
+        if test_events:
+            url = recording_urls.events(project=self.project_id, recording=recording_id)
+            data = self._get_data(url)
+            # There should be at least one event in here. More like 6 or 7 after
+            # all the things we did above.
+            assert len(data) > 0
+            event = data[0]
+            assert event["recording_id"] == recording_id
+            assert "action" in event
 
-        url = recording_urls.list_subscriptions(project=self.project_id, recording=recording_id)
-        data = self._get_data(url)
-        assert "subscribed" in data
-        assert "count" in data
+        if test_subscriptions:
+            url = recording_urls.list_subscriptions(project=self.project_id, recording=recording_id)
+            data = self._get_data(url)
+            assert "subscribed" in data
+            assert "count" in data
 
-        url = recording_urls.subscribe_myself(project=self.project_id, recording=recording_id)
-        data = self._get_data(url)
+            url = recording_urls.subscribe_myself(project=self.project_id, recording=recording_id)
+            _ = self._get_data(url)
 
-        url = recording_urls.unsubscribe_myself(project=self.project_id, recording=recording_id)
-        data = self._get_no_content(url)
+            url = recording_urls.unsubscribe_myself(project=self.project_id, recording=recording_id)
+            _ = self._get_no_content(url)
 
         # TODO
         # url = recording_urls.update_subscriptions(project=self.project_id, recording=recording_id)
@@ -516,6 +973,29 @@ class APITest(unittest.TestCase):
                                            attachable_sgid=attachable_sgid,
                                            description=description)
         data = self._get_data(url)
+        return data
+
+    def _get_current_user(self):
+        url = self.api.urls.people.get_myself()
+        data = self._get_data(url)
+        person_id = data["id"]
+        assert "email_address" in data
+        return person_id
+
+    def _create_todo_item(self, todolist_id, person_id, content, desc):
+        starts_on = date.today() + timedelta(days=1)
+        due_on = starts_on + timedelta(days=1)
+
+        url = self.api.urls.todos.create(
+            project=self.project_id, todolist=todolist_id, content=content,
+            description=desc, assignee_ids=[person_id],
+            completion_subscriber_ids=[person_id], notify=True, due_on=due_on,
+            starts_on=starts_on
+        )
+        data = self._get_data(url)
+        assert data["starts_on"] == starts_on.strftime("%Y-%m-%d")
+        assert data["due_on"] == due_on.strftime("%Y-%m-%d")
+
         return data
 
     def _get_upload(self, upload_id):

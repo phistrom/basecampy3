@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Project Template objects in the Basecamp 3 API.
 """
 
 from .base import EndpointURLs
+from .. import util
 
 
 class Templates(EndpointURLs):
@@ -18,7 +20,7 @@ class Templates(EndpointURLs):
 
         https://github.com/basecamp/bc3-api/blob/master/sections/templates.md#get-templates
 
-        :param status: active, archived, or trashed to filter by that state
+        :param status: archived, or trashed to filter by that state
         :type status: str|None
         :param kwargs: additional query string parameters (not currently used)
         :type kwargs: str
@@ -44,18 +46,29 @@ class Templates(EndpointURLs):
         """
         return self._get("/templates/{template}.json", template=template)
 
-    def create(self):
+    def create(self, name, description=None, **kwargs):
         """
         Create a new Template.
 
         https://github.com/basecamp/bc3-api/blob/master/sections/templates.md#create-a-template
 
+        :param name: the name for this Template
+        :type name: typing.AnyStr
+        :param description: an optional description for this Template
+        :type description: typing.AnyStr|None
+        :param kwargs: additional JSON params (not currently used)
+        :type kwargs: typing.Any
         :return: the URL for creating a Template
         :rtype: basecampy3.urls.URL
         """
-        return self._post("/templates.json")
+        kwargs["name"] = name
+        kwargs["description"] = description
 
-    def update(self, template):
+        kwargs = util.filter_unused(kwargs)
+
+        return self._post("/templates.json", json_dict=kwargs)
+
+    def update(self, template, name=None, description=None, **kwargs):
         """
         Modify an existing Template's name and/or description.
 
@@ -63,10 +76,21 @@ class Templates(EndpointURLs):
 
         :param template: the ID of a Template
         :type template: int
+        :param name: a new name for this Template
+        :type name: typing.AnyStr|None
+        :param description: a new description for this Template
+        :type description: typing.AnyStr|None
+        :param kwargs: additional JSON parameters (not currently used)
+        :type kwargs: typing.Any
         :return: the URL for modifying the desired Template
         :rtype: basecampy3.urls.URL
         """
-        return self._put("/templates/{template}.json", template=template)
+        kwargs["name"] = name
+        kwargs["description"] = description
+
+        kwargs = util.filter_unused(kwargs)
+
+        return self._put("/templates/{template}.json", template=template, json_dict=kwargs)
 
     def trash(self, template):
         """
