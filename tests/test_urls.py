@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from basecampy3 import Basecamp3, exc
 
 logger = logging.getLogger("basecampy3")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 
 try:
@@ -34,10 +34,12 @@ class APITest(unittest.TestCase):
     PROJECT_TEST_NAME_PREFIX = "_DELETE_pytest__basecampy3_"
     PROJECT_TEST_DESCRIPTION = "Trash me I am a test project."
     UPLOAD_TEST_FILE_NAME = "testfile.png"
+    api = None
 
     def __init__(self, methodName='runTest'):
         super(APITest, self).__init__(methodName=methodName)
-        self.api = Basecamp3()
+        if APITest.api is None:
+            APITest.api = Basecamp3()
 
     def setUp(self):
         proj = self._create_test_project(middle="URLs")
@@ -111,6 +113,11 @@ class APITest(unittest.TestCase):
         assert data["content"] == test_text
 
         # Get Campfire Line
+        data = self._get_campfire_line(line_id)
+        assert data["id"] == line_id
+        assert data["content"] == test_text
+
+        # Get Campfire Line (test caching)
         data = self._get_campfire_line(line_id)
         assert data["id"] == line_id
         assert data["content"] == test_text
