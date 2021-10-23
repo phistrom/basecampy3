@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Document objects in the Basecamp 3 API.
 """
 
 from .recordings import RecordingEndpointURLs
+from .. import util
 
 
 class Documents(RecordingEndpointURLs):
@@ -45,7 +47,7 @@ class Documents(RecordingEndpointURLs):
         return self._get("/buckets/{project}/documents/{document}.json",
                          project=project, document=document)
 
-    def create(self, project, vault):
+    def create(self, project, vault, title, content, status=None):
         """
         Create a new Document in the given Vault.
 
@@ -55,13 +57,26 @@ class Documents(RecordingEndpointURLs):
         :type project: int
         :param vault: the ID of a Vault
         :type vault: int
-        :return:
-        :rtype:
+        :param title: the title of this new Document
+        :type title: typing.AnyStr
+        :param content: rich text (HTML) content of this Document
+        :type content: typing.AnyStr
+        :param status: "drafted" by default. Set to "active" to publish immediately.
+        :type status: typing.AnyStr
+        :return: the URL to create a new Document in the desired Vault
+        :rtype: basecampy3.urls.URL
         """
-        return self._post("/buckets/{project}/vaults/{vault}/documents.json",
-                          project=project, vault=vault)
+        json_dict = {
+            "title": title,
+            "content": content,
+            "status": status,
+        }
+        json_dict = util.filter_unused(json_dict)
 
-    def update(self, project, document):
+        return self._post("/buckets/{project}/vaults/{vault}/documents.json",
+                          project=project, vault=vault, json_dict=json_dict)
+
+    def update(self, project, document, title=None, content=None):
         """
         Change the title or content of a given Document.
 
@@ -73,6 +88,10 @@ class Documents(RecordingEndpointURLs):
         :rtype: basecampy3.urls.URL
         """
 
+        json_dict = {
+            "title": title,
+            "content": content,
+        }
+        json_dict = util.filter_unused(json_dict)
         return self._put("/buckets/{project}/documents/{document}.json",
-                         project=project, document=document)
-
+                         project=project, document=document, json_dict=json_dict)

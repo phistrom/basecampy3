@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Campfire objects in the Basecamp 3 API.
 """
 
 from .base import EndpointURLs
 
 
 class Campfires(EndpointURLs):
+    """
+    https://github.com/basecamp/bc3-api/blob/master/sections/campfires.md
+    """
     def list(self, **kwargs):
         """
         Retrieve a list of Campfires.

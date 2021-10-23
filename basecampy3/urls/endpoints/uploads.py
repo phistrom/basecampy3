@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+URLs related to Upload objects in the Basecamp 3 API.
 """
 
 from .recordings import RecordingEndpointURLs
+from .. import util
 
 
 class Uploads(RecordingEndpointURLs):
@@ -44,7 +46,7 @@ class Uploads(RecordingEndpointURLs):
         return self._get("/buckets/{project}/uploads/{upload}.json",
                          project=project, upload=upload)
 
-    def create(self, project, vault):
+    def create(self, project, vault, attachable_sgid, **kwargs):
         """
         Create a new Upload.
 
@@ -54,15 +56,21 @@ class Uploads(RecordingEndpointURLs):
         :type project: int
         :param vault: the ID of a Vault
         :type vault: int
+        :param attachable_sgid: generated from the create attachment URL
+        :type attachable_sgid: typing.AnyStr
         :return: the URL for creating a new Upload
         :rtype: basecampy3.urls.URL
         """
-        return self._post("/buckets/{project}/vaults/{vault}/uploads.json",
-                          project=project, vault=vault)
+        kwargs["attachable_sgid"] = attachable_sgid
 
-    def update(self, project, upload):
+        return self._post("/buckets/{project}/vaults/{vault}/uploads.json",
+                          project=project, vault=vault, json_dict=kwargs)
+
+    def update(self, project, upload, base_name=None, description=None):
         """
         Modify an Upload's base name or description.
+
+        https://github.com/basecamp/bc3-api/blob/master/sections/uploads.md#update-an-upload
 
         :param project: the ID of a Project
         :type project: int
@@ -71,5 +79,10 @@ class Uploads(RecordingEndpointURLs):
         :return: the URL for modifying an Upload
         :rtype: basecampy3.urls.URL
         """
+        json_dict = {
+            "base_name": base_name,
+            "description": description,
+        }
+        json_dict = util.filter_unused(json_dict)
         return self._put("/buckets/{project}/uploads/{upload}.json",
-                         project=project, upload=upload)
+                         project=project, upload=upload, json_dict=json_dict)
