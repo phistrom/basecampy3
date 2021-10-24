@@ -40,3 +40,7 @@ class NoDefaultConfigurationFound(Basecamp3Error):
     def __init__(self, response=None, message=None):
         super(NoDefaultConfigurationFound, self).__init__(response, message)
         self.message = "No default configuration could be found. Try running `bc3 configure` from the command line."
+
+
+class UnhashableError(TypeError):
+    pass

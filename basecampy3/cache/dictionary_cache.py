@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from .response_cache import ResponseCache
+from .. import exc
 
 
 class DictionaryCache(ResponseCache):
@@ -23,25 +24,30 @@ class DictionaryCache(ResponseCache):
     @max_entries.setter
     def max_entries(self, value):
         value = int(value)
-        if value < 0:
-            raise ValueError("max_entries cannot be negative")
+        if value < 1:
+            raise ValueError("max_entries cannot be 0 or less.")
         self.__max_entries = value
 
-    def get_cached_headers(self, method, url):
+    def get_cached_headers(self, request):
         try:
-            key = (method, url)
+            key = self._request_to_hash(request)
             etag, last_modified, _ = self._cache_dict[key]
             return etag, last_modified
-        except KeyError:
+        except (KeyError, exc.UnhashableError):
             return None, None
 
-    def get_cached_response(self, method, url):
-        item = self._cache_dict[(method, url)]
-        response = item[2]  # our cached items are a tuple as etag, last_modified, and response
+    def get_cached_response(self, request):
+        key = self._request_to_hash(request)
+        item = self._cache_dict[key]
+        # our cached items are a tuple as etag, last_modified, and response
+        response = item[2]
         return response
 
     def set_cached(self, response):
-        key = (response.request.method, response.request.url)
+        try:
+            key = self._request_to_hash(response.request)
+        except exc.UnhashableError:
+            return
         etag = response.headers.get('ETag')
         last_modified = response.headers.get('Last-Modified')
         self._add_to_cache(key, etag, last_modified, response)
@@ -52,7 +58,7 @@ class DictionaryCache(ResponseCache):
         the maximum size.
 
         :param key: the unique key to use to store this item for lookup later, i.e. tuple(method, url)
-        :type key: tuple[str]
+        :type key: typing.Hashable
         :param etag: the ETag provided in the response for easy access later
         :type etag: str
         :param last_modified: the Last-Modified header in the response for easy access later
@@ -62,13 +68,14 @@ class DictionaryCache(ResponseCache):
         """
         item = (etag, last_modified, response)
 
+        # ensure it's the freshest item in the dict
         try:
-            del self._cache_dict[key]  # pop this response out of the cache if it's in there already
+            self._cache_dict.move_to_end(key)
         except KeyError:
             pass
 
-        while len(self._cache_dict) >= self.max_entries:  # pop off oldest entries until within limit
-            self._cache_dict.popitem(last=False)
-
-        # it's now the freshest item in the cache
         self._cache_dict[key] = item
+
+        # pop off oldest entries until within limit
+        while len(self._cache_dict) >= self.max_entries:
+            self._cache_dict.popitem(last=False)
