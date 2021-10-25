@@ -40,7 +40,7 @@ class Projects(EndpointURLs):
         https://github.com/basecamp/bc3-api/blob/master/sections/projects.md#get-a-project
 
         :param project: the ID of a Project
-        :type project: int
+        :type project: int|basecampy3.endpoints.projects.Project
         :return: a URL to get the details of a Project
         :rtype: basecampy3.urls.URL
         """
@@ -113,6 +113,13 @@ class Projects(EndpointURLs):
 
         https://github.com/basecamp/bc3-api/blob/master/sections/people.md#update-who-can-access-a-project
 
+        :param grant: grant access to this Project to this list of people
+        :type grant: typing.Iterable[int|basecampy3.endpoints.people.Person]
+        :param revoke: remove access to this Project to this list of people
+        :type revoke: typing.Iterable[int|basecampy3.endpoints.people.Person]
+        :param create: create new user accounts and grant access to the people described
+                       in this list
+        :type create: typing.Iterable[]
         :param project: the ID of a Project
         :type project: int
         :return: the URL to modify who has access to a Project

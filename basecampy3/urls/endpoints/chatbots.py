@@ -45,7 +45,7 @@ class Chatbots(EndpointURLs):
         return self._get("/buckets/{project}/chats/{campfire}/integrations/{chatbot}.json",
                          project=project, campfire=campfire, chatbot=chatbot)
 
-    def create(self, project, campfire, service_name, command_url):
+    def create(self, project, campfire, service_name, command_url=None):
         """
         Create a new Chatbot in the given Campfire.
 
@@ -55,6 +55,10 @@ class Chatbots(EndpointURLs):
         :type project: int
         :param campfire: the ID of a Campfire
         :type campfire: int
+        :param service_name: the name of the chatbot
+        :type service_name: typing.AnyStr
+        :param command_url: the URL Basecamp can call when the bot is addressed
+        :type command_url: typing.AnyStr|None
         :return: the URL for creating new Chatbots in the desired Campfire
         :rtype: basecampy3.urls.URL
         """
@@ -77,6 +81,10 @@ class Chatbots(EndpointURLs):
         :type campfire: int
         :param chatbot: the ID of a Chatbot
         :type chatbot: int
+        :param service_name: a new name for the chatbot
+        :type service_name: typing.AnyStr
+        :param command_url: a new URL for Basecamp to call when the bot is addressed
+        :type command_url: typing.AnyStr|None
         :return: the URL for updating the desired Chatbot
         :rtype: basecampy3.urls.URL
         """

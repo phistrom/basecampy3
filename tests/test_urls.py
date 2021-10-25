@@ -16,6 +16,7 @@ from basecampy3 import Basecamp3, exc
 logger = logging.getLogger("basecampy3")
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("basecampy3.transport_adapter").setLevel(logging.INFO)
 
 try:
     PRE_MADE_PROJECT_ID = os.environ["BC3_TEST_PROJECT_ID"]
@@ -452,7 +453,7 @@ class APITest(unittest.TestCase):
         assert data["name"] == new_name
         assert data["description"] == new_desc
 
-        # We will skip trashing a project because that is also tested by
+        # We will skip trashing a project because that is tested by
         # every other test.
 
         # Update Membership
@@ -856,6 +857,83 @@ class APITest(unittest.TestCase):
         self._recording_tests(upload_id, self.api.urls.uploads)
 
         logger.info("Successfully tested uploads (and attachments)!")
+
+    def test_vaults(self):
+        vault_name = "Basecampy3 Test Vault"
+        # Create Vault
+        url = self.api.urls.vaults.create(project=self.project_id, vault=self.vault_id, title=vault_name)
+        data = self._get_data(url)
+        assert data["title"] == vault_name
+        test_vault_id = data["id"]
+
+        # Update Vault
+        new_vault_name = "Basecampy3 Renamed Test"
+
+        url = self.api.urls.vaults.update(project=self.project_id, vault=test_vault_id, title=new_vault_name)
+        data = self._get_data(url)
+        assert data["id"] == test_vault_id
+        assert data["title"] == new_vault_name
+
+        # List Vaults in root Vault
+        url = self.api.urls.vaults.list_vault_by_vault(project=self.project_id, vault=self.vault_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Get Vault
+        url = self.api.urls.vaults.get(project=self.project_id, vault=test_vault_id)
+        data = self._get_data(url)
+        assert data["id"] == test_vault_id
+        assert data["title"] == new_vault_name
+
+        # Perform Recording tests on the test vault
+        self._recording_tests(recording_id=test_vault_id, recording_urls=self.api.urls.vaults)
+
+        logger.info("Successfully tested vaults!")
+
+    def test_webhooks(self):
+        payload_url = "https://example.com/"
+        # Create Webhook
+        url = self.api.urls.webhooks.create(project=self.project_id,
+                                            payload_url=payload_url,
+                                            types=["Comment", "Vault"])
+        data = self._get_data(url)
+        assert data["payload_url"] == payload_url
+        assert "Comment" in data["types"]
+        assert "Vault" in data["types"]
+        webhook_id = data["id"]
+
+        # Update Webhook
+        new_payload_url = "https://example.com/new/"
+        new_types = ["Todo", "Todolist"]
+
+        url = self.api.urls.webhooks.update(project=self.project_id,
+                                            webhook=webhook_id,
+                                            payload_url=new_payload_url,
+                                            types=new_types, active=False)
+        data = self._get_data(url)
+        assert data["id"] == webhook_id
+        assert data["payload_url"] == new_payload_url
+        assert "Todo" in data["types"]
+        assert "Todolist" in data["types"]
+
+        # List Webhooks
+        url = self.api.urls.webhooks.list(project=self.project_id)
+        data = self._get_data(url)
+        assert len(data) > 0
+
+        # Get Webhooks
+        url = self.api.urls.webhooks.get(project=self.project_id, webhook=webhook_id)
+        data = self._get_data(url)
+        assert data["id"] == webhook_id
+        assert data["payload_url"] == new_payload_url
+        assert "Todo" in data["types"]
+        assert "Todolist" in data["types"]
+
+        # Delete Webhook
+        url = self.api.urls.webhooks.delete(project=self.project_id, webhook=webhook_id)
+        self._get_no_content(url)
+
+        logger.info("Successfully tested webhooks!")
 
     def _get_data(self, url):
         response = self._get_no_content(url)

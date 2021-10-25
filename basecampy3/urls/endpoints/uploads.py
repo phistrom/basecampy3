@@ -76,6 +76,12 @@ class Uploads(RecordingEndpointURLs):
         :type project: int
         :param upload: the ID of an Upload
         :type upload: int
+        :param base_name: a new name for this file (base name is file name
+                          without the extension)
+        :type base_name: typing.AnyStr|None
+        :param description: a new rich text (HTML) description for this
+                            uploaded file
+        :type description: typing.AnyStr|None
         :return: the URL for modifying an Upload
         :rtype: basecampy3.urls.URL
         """
