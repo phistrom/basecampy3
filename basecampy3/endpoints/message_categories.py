@@ -43,7 +43,7 @@ class MessageCategories(BasecampEndpoint):
         :param name: the name of this MessageCategory
         :type name: str
         :param icon: the icon for this MessageCategory (usually the unicode character for an emoji)
-        :type str: str
+        :type icon: str
         :param project: a Project object or ID
         :type project: basecampy3.endpoints.projects.Project|int
         :return: the newly created MessageCategory object
