@@ -14,12 +14,14 @@ with open(os.path.join(here, 'basecampy3', '__version__.py'), 'r', encoding='utf
 setup(
     name='basecampy3',
     version=about['__version__'],
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests"]),
     install_requires=[
         "python-dateutil",
         "pytz",
         "requests",
         "six",
+        "urllib3<2.0.0",
+        "tzlocal<=2.1",
     ],
     entry_points={
         'console_scripts': [

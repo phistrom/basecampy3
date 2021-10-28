@@ -3,13 +3,19 @@
 Tests for the basecampy3.urls package.
 """
 
+from __future__ import unicode_literals
+
 import logging
 import os
 import re
 import time
 import unittest
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
+
+import dateutil
+import pytz
+from tzlocal import get_localzone
 
 from basecampy3 import Basecamp3, exc
 
@@ -506,8 +512,10 @@ class APITest(unittest.TestCase):
                               trash=False)
 
     def test_schedule_entries(self):
+        # purposely use naive, non-UTC datetimes for testing
         now = datetime.now()
         tomorrow = now + timedelta(days=1)
+
         test_summary = "Basecampy Test Entry"
         test_description = "Attend this test entry <strong>tomorrow!</strong>"
 
@@ -521,12 +529,22 @@ class APITest(unittest.TestCase):
                                                     all_day=False,
                                                     notify=True)
         data = self._get_data(url)
-        # parse and set to UTC
-        starts_at = datetime.strptime(data["starts_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-        ends_at = datetime.strptime(data["ends_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+
+        # parse the returned dates and set to UTC
+        starts_at = dateutil.parser.isoparse(data["starts_at"])
+        ends_at = dateutil.parser.isoparse(data["ends_at"])
+        starts_at = starts_at.astimezone(pytz.utc)
+        ends_at = ends_at.astimezone(pytz.utc)
+
         # convert original input to UTC
-        now_utc = now.replace(microsecond=0).astimezone(timezone.utc)
-        tomorrow_utc = tomorrow.replace(microsecond=0).astimezone(timezone.utc)
+        tz_local = get_localzone()
+        now_utc = tz_local.localize(now).astimezone(pytz.utc)
+        tomorrow_utc = tz_local.localize(tomorrow).astimezone(pytz.utc)
+
+        # remove the microsecond precision from the original input
+        # as it is not preserved in Schedule Entry objects
+        now_utc = now_utc.replace(microsecond=0)
+        tomorrow_utc = tomorrow_utc.replace(microsecond=0)
 
         assert starts_at == now_utc
         assert ends_at == tomorrow_utc

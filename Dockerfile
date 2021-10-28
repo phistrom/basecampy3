@@ -5,6 +5,7 @@ ARG GROUP_ID="${USER_ID}"
 ARG USERNAME=basecampy
 ARG WORKDIR=/bc3
 ARG HOME_DIR="/home/${USERNAME}"
+ARG DEFAULT_TIMEZONE="America/Chicago"
 
 ENV WORKDIR="${WORKDIR}"
 ENV HOME_DIR="${HOME_DIR}"
@@ -12,6 +13,9 @@ ENV BC3_OAUTH_BIND_ADDRESS=0.0.0.0
 ENV BC3_CONTAINER=1
 ENV BC3_CONFIG_PATH="/etc/basecamp.conf"
 ENV PYTHONPATH="${WORKDIR}"
+
+# Change to your timezone by specifying with docker run
+ENV TZ="${DEFAULT_TIMEZONE}"
 
 COPY requirements.txt .
 
