@@ -3,6 +3,7 @@
 """
 
 from .recordings import RecordingEndpointURLs
+from .. import util
 
 
 class Vaults(RecordingEndpointURLs):
@@ -45,7 +46,7 @@ class Vaults(RecordingEndpointURLs):
         return self._get("/buckets/{project}/vaults/{vault}.json",
                          project=project, vault=vault)
 
-    def create(self, project, vault):
+    def create(self, project, vault, title, **kwargs):
         """
         Create a new Vault in the given parent Vault.
 
@@ -55,13 +56,19 @@ class Vaults(RecordingEndpointURLs):
         :type project: int
         :param vault: the ID of a Vault to be the new Vault's parent
         :type vault: int
+        :param title: the name for this vault
+        :type title: typing.AnyStr
+        :param kwargs: additional JSON parameters (for future use)
+        :type kwargs: typing.Any
         :return: the URL for creating new Vaults within the desired Vault
         :rtype: basecampy3.urls.URL
         """
+        kwargs["title"] = title
+        kwargs = util.filter_unused(kwargs)
         return self._post("/buckets/{project}/vaults/{vault}/vaults.json",
-                          project=project, vault=vault)
+                          project=project, vault=vault, json_dict=kwargs)
 
-    def update(self, project, vault):
+    def update(self, project, vault, title, **kwargs):
         """
         Update a Vault's title.
 
@@ -71,8 +78,16 @@ class Vaults(RecordingEndpointURLs):
         :type project: int
         :param vault: the ID of a Vault to modify
         :type vault: int
+        :param title: a new name for this Vault
+        :type title: typing.AnyStr
+        :param kwargs: additional JSON parameters
+        :type kwargs: typing.Any
         :return: the URL for modifying the desired Vault
         :rtype: basecampy3.urls.URL
         """
+
+        kwargs["title"] = title
+        kwargs = util.filter_unused(kwargs)
+
         return self._put("/buckets/{project}/vaults/{vault}.json",
-                         project=project, vault=vault)
+                         project=project, vault=vault, json_dict=kwargs)

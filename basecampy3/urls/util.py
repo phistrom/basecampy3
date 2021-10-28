@@ -2,8 +2,11 @@
 """
 """
 
-from datetime import date, datetime, timedelta, timezone
 import logging as _logging
+from datetime import date, datetime
+
+import pytz
+from tzlocal import get_localzone
 
 _logger = _logging.getLogger(__name__)
 
@@ -58,7 +61,7 @@ def fix_naive_datetime(dt, warn=True):
     the same timezone with no modification.
 
     Note that this only sets the local timezone on the given datetime object,
-    it does not adjust the date and time in any way (it uses `.replace()` not
+    it does not adjust the date and time in any way (it uses `.localize()` not
     `.astimezone()`). Also bear in mind that datetimes are immutable like
     strings. This function cannot modify the datetime you give it.
 
@@ -72,11 +75,11 @@ def fix_naive_datetime(dt, warn=True):
     :rtype: datetime
     """
     if dt.tzinfo is None:
-        local_timezone = datetime.now(timezone(timedelta(0))).astimezone().tzinfo
+        local_timezone = get_localzone()
         if warn:
             _logger.warning("Naive (no timezone) datetime is being converted to "
                             "'%s'." % local_timezone)
-        dt = dt.replace(tzinfo=local_timezone)
+        dt = local_timezone.localize(dt)
     return dt
 
 
@@ -107,7 +110,7 @@ def to_date_string(d):
         d.date()  # is this a datetime?
         # set timezone to UTC and return date
         dt = fix_naive_datetime(d)  # warn if naive
-        dt = dt.astimezone(timezone.utc)
+        dt = dt.astimezone(pytz.utc)
         return dt.strftime("%Y-%m-%d")
     except AttributeError:
         pass  # wasn't a datetime

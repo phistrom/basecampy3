@@ -84,6 +84,10 @@ class Documents(RecordingEndpointURLs):
         :type project: int
         :param document: the ID of a Document
         :type document: int
+        :param title: a new title for this Document
+        :type title: typing.AnyStr
+        :param content: new rich text (HTML) content for this Document
+        :type content: typing.AnyStr
         :return: the URL to use to modify the desired Document
         :rtype: basecampy3.urls.URL
         """

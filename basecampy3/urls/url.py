@@ -32,10 +32,10 @@ class URL(object):
         """
         self.url = url
         self.method = method
-        self._params = None
+        self._params = {}
         self.params = params
         self.filepath = filepath
-        self._headers = None
+        self._headers = {}
         self.headers = headers
         self.json_dict = json_dict
 

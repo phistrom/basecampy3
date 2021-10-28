@@ -295,9 +295,12 @@ class Basecamp3(object):
 
         # the format of the expires_at date in the JSON response is ISO 8601
         # YYYY-mm-ddTHH:MM:SS.fffZ
+        # We use dateutil's isoparse to get more easily/robustly parse the
+        # string and make sure it has timezone data (even if it is just UTC).
         expires_at = dateutil.parser.isoparse(data['expires_at'])
-        expires_at = expires_at.astimezone(pytz.utc)  # just in case Basecamp 3 decides to stop being UTC
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        # ensure it is UTC
+        expires_at = expires_at.astimezone(pytz.utc)
+        now = pytz.utc.localize(datetime.utcnow())
         return now >= expires_at
 
     def _refresh_access_token(self):
