@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-URLs related to Chatbot objects in the Basecamp 3 API.
+URLs related to Comment objects in the Basecamp 3 API.
 """
 
 from .recordings import RecordingEndpointURLs

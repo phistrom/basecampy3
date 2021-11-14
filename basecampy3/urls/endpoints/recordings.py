@@ -4,13 +4,12 @@ Base class for Recording objects in the Basecamp 3 API.
 """
 
 import abc
-import six
+
 from .base import EndpointURLs
 from .. import util
 
 
-@six.add_metaclass(abc.ABCMeta)
-class RecordingEndpointURLs(EndpointURLs):
+class RecordingEndpointURLs(EndpointURLs, metaclass=abc.ABCMeta):
     """
     Not all Recordings support all of these features.
     For instance, Comments do not support Client Visibility.
@@ -173,7 +172,7 @@ class RecordingEndpointURLs(EndpointURLs):
         return self._delete("/buckets/{project}/recordings/{recording}/subscription.json",
                             project=project, recording=recording)
 
-    def update_subscriptions(self, project, recording):
+    def update_subscriptions(self, project, recording, subscriptions=None, unsubscriptions=None, **kwargs):
         """
         Add/remove subscribers to a Recording.
 
@@ -183,8 +182,19 @@ class RecordingEndpointURLs(EndpointURLs):
         :type project: int
         :param recording: the ID of a Recording
         :type recording: int
+        :param subscriptions: a list of IDs or Person objects to subscribe
+        :type subscriptions: list[int|basecampy3.endpoints.people.Person]|None
+        :param unsubscriptions: a list of IDs or Person objects to unsubscribe
+        :type unsubscriptions: list[int|basecampy3.endpoints.people.Person]|None
+        :param kwargs: additional JSON parameters (not currently used)
+        :type kwargs: Any
         :return: the URL for modifying the subscriber list of the desired Recording
         :rtype: basecampy3.urls.URL
         """
+
+        kwargs["subscriptions"] = util.to_ids(subscriptions)
+        kwargs["unsubscriptions"] = util.to_ids(unsubscriptions)
+        kwargs = util.filter_unused(kwargs)
+
         return self._put("/buckets/{project}/recordings/{recording}/subscription.json",
-                         project=project, recording=recording)
+                         project=project, recording=recording, json_dict=kwargs)

@@ -132,7 +132,7 @@ def to_ids(iterable):
     If `iterable` is `None`, returns `None`.
 
     :param iterable: an iterable of integers and/or Basecampy objects
-    :type iterable: list[basecampy3.endpoints._base.BasecampObject|dict|int]
+    :type iterable: None|list[basecampy3.endpoints._base.BasecampObject|dict|int]
     :return: all elements of the iterable converted to integers
     :rtype: list[int]
     """

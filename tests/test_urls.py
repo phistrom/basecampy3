@@ -5,6 +5,7 @@ Tests for the basecampy3.urls package.
 
 from __future__ import unicode_literals
 
+import json
 import logging
 import os
 import re
@@ -38,10 +39,14 @@ except Exception:
 
 
 class APITest(unittest.TestCase):
+    """
+    :type api: Basecamp3
+    """
     PROJECT_TEST_NAME_PREFIX = "_DELETE_pytest__basecampy3_"
     PROJECT_TEST_DESCRIPTION = "Trash me I am a test project."
     UPLOAD_TEST_FILE_NAME = "testfile.png"
     api = None
+    """:type api: Basecamp3"""
 
     def __init__(self, methodName='runTest'):
         super(APITest, self).__init__(methodName=methodName)
@@ -954,11 +959,40 @@ class APITest(unittest.TestCase):
         logger.info("Successfully tested webhooks!")
 
     def _get_data(self, url):
+        """
+        :type url: basecampy3.urls.URL[T]
+        :rtype: T
+        """
         response = self._get_no_content(url)
         data = response.json()
+        self._persist_data(response, data)
         return data
 
+    @staticmethod
+    def _persist_data(response, data):
+        """
+        :type response: requests.Response
+        """
+        output_dir = "json_output"
+        try:
+            os.makedirs(output_dir)
+        except OSError:
+            pass
+
+        file_name = response.request.path_url.replace("/", "-").replace("?", ".").replace("=", "_").replace("&", "_")
+        file_name = file_name.lstrip("-")
+        file_name = "%s-%s" % (response.request.method, file_name)
+        if not file_name.endswith(".json"):
+            file_name = file_name + ".json"
+
+        output_path = os.path.join(output_dir, file_name)
+        with open(output_path, "w") as outfile:
+            json.dump(data, outfile, indent=2)
+
     def _get_no_content(self, url):
+        """
+        :type url: basecampy3.urls.URL
+        """
         response = url.request(self.api.session)
         if not response.ok:
             raise exc.Basecamp3Error(response=response)

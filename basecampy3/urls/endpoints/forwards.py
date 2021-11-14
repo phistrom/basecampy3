@@ -15,8 +15,7 @@ class Forwards(RecordingEndpointURLs):
 
     RECORD_TYPE = "Inbox::Forward"
 
-    # noinspection PyMethodOverriding
-    def list(self, project, inbox):
+    def list_by_inbox(self, project, inbox):
         """
         Get a list of Forwards by Inbox.
 
